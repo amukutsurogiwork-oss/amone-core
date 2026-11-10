@@ -9,6 +9,7 @@
       "guiOperations": ["screen-check", "review", "consult"],
       "notify": "github-issue",
       "priority": "normal"
-    }
+    },
+    { "repo": "amukutsurogiwork-oss/yuhi-colorsing-system" }
   ]
 }
