@@ -55,3 +55,9 @@ test("the caller template pins the action to a full commit SHA and keeps the own
   assert.match(t, /author_association == 'OWNER'/);
   assert.match(t, /cancel-in-progress: false/);
 });
+
+test("the action always uses the workflow's own token (records are read back only from github-actions[bot])", () => {
+  const a = fs.readFileSync(path.join(root, ".github", "actions", "intake", "action.yml"), "utf8");
+  assert.doesNotMatch(a, /^inputs:/m, "callers must not be able to pass another token");
+  assert.match(a, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+});

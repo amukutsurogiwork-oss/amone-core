@@ -1,9 +1,5 @@
 name: AMONE intake
 description: Route one owner comment ([MONE-REQUEST] / [AMU-RESULT]) and post at most one record comment.
-inputs:
-  token:
-    description: Token for the calling repository's Issue/PR comments and labels.
-    default: ${{ github.token }}
 runs:
   using: composite
   steps:
@@ -16,4 +12,5 @@ runs:
       run: node "$ACTION_PATH/../../../scripts/intake.js"
       env:
         ACTION_PATH: ${{ github.action_path }}
-        GITHUB_TOKEN: ${{ inputs.token }}
+        # Always the workflow's own token: records are read back only from github-actions[bot].
+        GITHUB_TOKEN: ${{ github.token }}
