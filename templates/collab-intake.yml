@@ -1,0 +1,27 @@
+name: collab-intake
+
+# Copy this file to .github/workflows/collab-intake.yml in a registered project.
+# Replace <FULL_COMMIT_SHA> with a commit of amone-core (40 hex characters).
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: collab-intake-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    if: >-
+      github.event.comment.author_association == 'OWNER' &&
+      (startsWith(github.event.comment.body, '[MONE-REQUEST]') ||
+       startsWith(github.event.comment.body, '[AMU-RESULT]'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: amukutsurogiwork-oss/amone-core/.github/actions/intake@<FULL_COMMIT_SHA>

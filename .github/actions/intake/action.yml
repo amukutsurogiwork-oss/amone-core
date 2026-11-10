@@ -1,0 +1,16 @@
+name: AMONE intake
+description: Route one owner comment ([MONE-REQUEST] / [AMU-RESULT]) and post at most one record comment.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    # github.action_path is the code at the commit the caller pinned.
+    - name: Route the request
+      shell: bash
+      run: node "$ACTION_PATH/../../../scripts/intake.js"
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        # Always the workflow's own token: records are read back only from github-actions[bot].
+        GITHUB_TOKEN: ${{ github.token }}

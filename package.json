@@ -1,0 +1,12 @@
+{
+  "name": "amone-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AMONE shared intake: request router, GitHub intake runner, and a pinned composite action",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
