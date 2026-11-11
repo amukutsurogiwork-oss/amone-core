@@ -8,7 +8,9 @@
       "approvalRequired": [],
       "guiOperations": ["screen-check", "review", "consult"],
       "notify": "github-issue",
-      "priority": "normal"
+      "priority": "normal",
+      "consultPrNumber": 23,
+      "chatAutoLaunchEnabled": true
     },
     { "repo": "amukutsurogiwork-oss/yuhi-colorsing-system" }
   ]
