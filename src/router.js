@@ -61,7 +61,7 @@ function validateProject(p) {
   const errors = [];
   if (!p || typeof p !== "object") return ["entry must be an object"];
   const isStrings = (v) => Array.isArray(v) && v.every((x) => typeof x === "string" && x.length > 0);
-  if (!/^[\w.-]+\/[\w.-]+$/.test(p.repo || "")) errors.push("repo must be owner/name");
+  if (typeof p.repo !== "string" || !/^[\w.-]+\/[\w.-]+$/.test(p.repo)) errors.push("repo must be owner/name");
   if (!isStrings(p.allowedLanes) || p.allowedLanes.length === 0) {
     errors.push("allowedLanes must be a non-empty array of strings");
   } else if (p.allowedLanes.some((l) => !LANES.includes(l))) {

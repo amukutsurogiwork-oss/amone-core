@@ -50,8 +50,9 @@ function chatLaunchTargets(registry) {
   const seen = new Set();
   for (const p of registry.projects) {
     if (validateProject(p).length) return stop("invalid project");
-    if (seen.has(p.repo)) return stop("duplicate repo");
-    seen.add(p.repo);
+    const key = p.repo.toLowerCase();   // GitHub owner/repo names are case-insensitive
+    if (seen.has(key)) return stop("duplicate repo");
+    seen.add(key);
   }
   const targets = registry.projects.filter((p) => p.chatAutoLaunchEnabled === true)
     .map((p) => ({ repo: p.repo, pr: p.consultPrNumber }));

@@ -83,3 +83,15 @@ test("a consult PR number without auto launch is allowed (and is not a target)",
   assert.deepEqual(validateProject(reg.projects[0]), []);
   assert.deepEqual(chatLaunchTargets(reg), { ok: true, targets: [] });
 });
+
+// Codex review (PR #5): repo must be a real string, and duplicates are case-insensitive (GitHub names are).
+test("a repo that is not a string stops the launch", () => {
+  const r = chatLaunchTargets(expandRegistry({ projects: [full({ repo: ["o/p"], consultPrNumber: 23, chatAutoLaunchEnabled: true })] }));
+  assert.deepEqual(r, { ok: false, reason: "invalid project", targets: [] });
+  assert.notDeepEqual(validateProject(full({ repo: ["o/p"] })), []);
+});
+
+test("the same repo with different letter case is a duplicate", () => {
+  const r = chatLaunchTargets(expandRegistry({ projects: [full({ repo: "o/p", consultPrNumber: 23, chatAutoLaunchEnabled: true }), full({ repo: "O/P" })] }));
+  assert.deepEqual(r, { ok: false, reason: "duplicate repo", targets: [] });
+});
