@@ -63,4 +63,37 @@ function chatLaunchTargets(rawRegistry) {
   return { ok: true, targets };
 }
 
-module.exports = { DEFAULTS, CHAT_DEFAULTS, expandRegistry, chatLaunchTargets };
+const REVIEW_OPERATIONS = ["review", "consult"];
+const REVIEW_KEYS = ["repo", "pr", "readOnly", "operations"];
+
+/**
+ * Where Amu Chat may READ a pull request to review it (never to write). This is separate from the consult PR (the place
+ * where Amu answers). No `reviewTargets` list = no targets (closed by default). Anything unclear stops everything:
+ * a target must name a registered repo, a whole-number PR, readOnly === true, a non-empty list of allowed operations,
+ * no extra fields, and no duplicate repo + PR. A line in the registry is not a grant by itself: the caller still checks
+ * the owner's approval and that this version of the registry is the merged one.
+ */
+function chatReviewTargets(rawRegistry) {
+  const stop = () => ({ ok: false, reason: "invalid review target", targets: [] });
+  if (!isObject(rawRegistry) || !Array.isArray(rawRegistry.projects)) return { ok: false, reason: "registry missing or malformed", targets: [] };
+  const list = rawRegistry.reviewTargets;
+  if (list === undefined) return { ok: true, targets: [] };
+  if (!Array.isArray(list)) return stop();
+  const repos = new Set(rawRegistry.projects.filter(isObject).map((p) => String(p.repo).toLowerCase()));
+  const seen = new Set();
+  const targets = [];
+  for (const t of list) {
+    if (!isObject(t) || Object.keys(t).some((k) => !REVIEW_KEYS.includes(k))) return stop();
+    if (typeof t.repo !== "string" || !repos.has(t.repo.toLowerCase())) return stop();
+    if (!Number.isInteger(t.pr) || t.pr < 1) return stop();
+    if (t.readOnly !== true) return stop();
+    if (!Array.isArray(t.operations) || !t.operations.length || t.operations.some((o) => !REVIEW_OPERATIONS.includes(o))) return stop();
+    const key = t.repo.toLowerCase() + "#" + t.pr;
+    if (seen.has(key)) return stop();
+    seen.add(key);
+    targets.push({ repo: t.repo, pr: t.pr, operations: [...t.operations] });
+  }
+  return { ok: true, targets };
+}
+
+module.exports = { DEFAULTS, CHAT_DEFAULTS, expandRegistry, chatLaunchTargets, chatReviewTargets };
