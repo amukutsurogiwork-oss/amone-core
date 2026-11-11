@@ -41,11 +41,15 @@ function expandRegistry(registry) {
 /**
  * Which consult PRs may start Amu Chat. Anything unclear stops everything (ok: false, no targets):
  * a missing or malformed registry, any invalid entry, a duplicate repo.
- * Expects an expanded registry. The PR's own state (open, consult PR) is checked by the caller on GitHub.
+ * Pass the RAW registry (as read from collab/registry.json): its shape is checked first, then it is expanded
+ * here, so a malformed file can never turn into "ok, no targets". Passing an already expanded registry is
+ * also fine (expansion only fills missing fields). The PR's own state (open, consult PR), the email, the
+ * re-check right before posting and concurrent starts are checked by the caller (the launch text), not here.
  */
-function chatLaunchTargets(registry) {
+function chatLaunchTargets(rawRegistry) {
   const stop = (reason) => ({ ok: false, reason, targets: [] });
-  if (!isObject(registry) || !Array.isArray(registry.projects)) return stop("registry missing or malformed");
+  if (!isObject(rawRegistry) || !Array.isArray(rawRegistry.projects)) return stop("registry missing or malformed");
+  const registry = expandRegistry(rawRegistry);
   const { validateProject } = require("./router");
   const seen = new Set();
   for (const p of registry.projects) {

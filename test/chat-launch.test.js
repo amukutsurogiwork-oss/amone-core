@@ -95,3 +95,17 @@ test("the same repo with different letter case is a duplicate", () => {
   const r = chatLaunchTargets(expandRegistry({ projects: [full({ repo: "o/p", consultPrNumber: 23, chatAutoLaunchEnabled: true }), full({ repo: "O/P" })] }));
   assert.deepEqual(r, { ok: false, reason: "duplicate repo", targets: [] });
 });
+
+// Amu review (REDESIGN-5 round=3): the raw registry is what the caller passes; a malformed one must not
+// become "ok, no targets" by going through expandRegistry first. Short entries passed raw are expanded inside.
+test("chatLaunchTargets takes the raw registry: a missing or malformed projects list stops", () => {
+  for (const bad of [{}, { projects: "x" }, { projects: null }, { projects: {} }]) {
+    assert.equal(chatLaunchTargets(bad).ok, false);
+  }
+});
+
+test("chatLaunchTargets expands raw short entries itself (safe defaults, no targets)", () => {
+  assert.deepEqual(chatLaunchTargets({ projects: [{ repo: "o/short" }] }), { ok: true, targets: [] });
+  assert.deepEqual(chatLaunchTargets({ projects: [full({ consultPrNumber: 9, chatAutoLaunchEnabled: true })] }),
+    { ok: true, targets: [{ repo: "o/full", pr: 9 }] });
+});
