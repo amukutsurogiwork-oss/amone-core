@@ -61,7 +61,7 @@ function validateProject(p) {
   const errors = [];
   if (!p || typeof p !== "object") return ["entry must be an object"];
   const isStrings = (v) => Array.isArray(v) && v.every((x) => typeof x === "string" && x.length > 0);
-  if (!/^[\w.-]+\/[\w.-]+$/.test(p.repo || "")) errors.push("repo must be owner/name");
+  if (typeof p.repo !== "string" || !/^[\w.-]+\/[\w.-]+$/.test(p.repo)) errors.push("repo must be owner/name");
   if (!isStrings(p.allowedLanes) || p.allowedLanes.length === 0) {
     errors.push("allowedLanes must be a non-empty array of strings");
   } else if (p.allowedLanes.some((l) => !LANES.includes(l))) {
@@ -78,6 +78,18 @@ function validateProject(p) {
   if (isStrings(p.allowedOperations) && isStrings(p.guiOperations)
       && p.guiOperations.some((op) => !p.allowedOperations.includes(op))) {
     errors.push("guiOperations must be listed in allowedOperations");
+  }
+  // A3: automatic start of Amu Chat. Strict types; enabled needs a consult PR and the chat lane.
+  if (p.consultPrNumber !== undefined && p.consultPrNumber !== null
+      && !(Number.isInteger(p.consultPrNumber) && p.consultPrNumber > 0)) {
+    errors.push("consultPrNumber must be a positive integer or null");
+  }
+  if (p.chatAutoLaunchEnabled !== undefined && typeof p.chatAutoLaunchEnabled !== "boolean") {
+    errors.push("chatAutoLaunchEnabled must be true or false");
+  }
+  if (p.chatAutoLaunchEnabled === true) {
+    if (!(Number.isInteger(p.consultPrNumber) && p.consultPrNumber > 0)) errors.push("chatAutoLaunchEnabled needs consultPrNumber");
+    if (!isStrings(p.allowedLanes) || !p.allowedLanes.includes("chat")) errors.push("chatAutoLaunchEnabled needs the chat lane");
   }
   return errors;
 }
