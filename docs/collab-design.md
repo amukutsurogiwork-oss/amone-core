@@ -7,7 +7,7 @@ COLLAB-005 / COLLAB-006 (v1.3) に基づく。振り分けの部品と、GitHub�
 - よしひろ: 最終判断。モネ: 開発・テスト・PR・窓口。Codex: PRの独立レビュー。
 - アムChat: 調査・設計・相談・頼まれたレビュー。Work: 画面操作が必須のときだけ。
 - GitHub Actions: 自動の検証と、承認済みの反映。
-- Chatを GitHub の出来事から人手なしで起こす方法は **未実証** (`UNSUPPORTED` のまま)。
+- Chatを GitHub の出来事から人手なしで起こす方法: 2026-11-12 に、通知メール + iPhone ショートカットで1回成功 (詳しくは `docs/AMONE.md` の5章)。
 
 ## 構成
 - **登録台帳** `collab/registry.json` (このリポジトリが正本): repo、窓口、許可レーン、許可操作、承認が要る操作 (`approvalRequired`)、画面操作が必須の操作 (`guiOperations`)、通知先、優先度。新しいプロジェクトは1行 `{ "repo": "owner/name" }` を足すだけ (下の「使い方」)。
@@ -138,7 +138,7 @@ COLLAB-005 / COLLAB-006 (v1.3) に基づく。振り分けの部品と、GitHub�
 | Codexレビュー | 動作を確認済み (`@codex review` の手動依頼で起動。push だけでは自動で動かない)。修正のたびに指摘を確認中 |
 | Chat回答 | Issue #13 で別途 |
 | Work | 使っていない |
-| GitHubの出来事でChatを即時起動 | **未実現・未実証** |
+| GitHubの出来事でChatを即時起動 | 2026-11-12 に1回成功 (通知メール + iPhone ショートカット。`docs/AMONE.md`) |
 
 単体テストが通ることと、GitHub上で実際に連携できることは別。後者はまだ試していない。
 
