@@ -79,6 +79,18 @@ function validateProject(p) {
       && p.guiOperations.some((op) => !p.allowedOperations.includes(op))) {
     errors.push("guiOperations must be listed in allowedOperations");
   }
+  // A3: automatic start of Amu Chat. Strict types; enabled needs a consult PR and the chat lane.
+  if (p.consultPrNumber !== undefined && p.consultPrNumber !== null
+      && !(Number.isInteger(p.consultPrNumber) && p.consultPrNumber > 0)) {
+    errors.push("consultPrNumber must be a positive integer or null");
+  }
+  if (p.chatAutoLaunchEnabled !== undefined && typeof p.chatAutoLaunchEnabled !== "boolean") {
+    errors.push("chatAutoLaunchEnabled must be true or false");
+  }
+  if (p.chatAutoLaunchEnabled === true) {
+    if (!(Number.isInteger(p.consultPrNumber) && p.consultPrNumber > 0)) errors.push("chatAutoLaunchEnabled needs consultPrNumber");
+    if (!isStrings(p.allowedLanes) || !p.allowedLanes.includes("chat")) errors.push("chatAutoLaunchEnabled needs the chat lane");
+  }
   return errors;
 }
 

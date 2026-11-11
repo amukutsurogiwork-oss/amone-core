@@ -11,6 +11,7 @@ COLLAB-005 / COLLAB-006 (v1.3) に基づく。振り分けの部品と、GitHub�
 
 ## 構成
 - **登録台帳** `collab/registry.json` (このリポジトリが正本): repo、窓口、許可レーン、許可操作、承認が要る操作 (`approvalRequired`)、画面操作が必須の操作 (`guiOperations`)、通知先、優先度。新しいプロジェクトは1行 `{ "repo": "owner/name" }` を足すだけ (下の「使い方」)。
+- **Chat の自動起動の欄 (A3)**: 台帳の各プロジェクトに `consultPrNumber` (相談用 PR の番号、正の整数か null) と `chatAutoLaunchEnabled` (true/false) を持てる。書いていなければ null / false (自動起動しない)。true にするには、相談用 PR の番号と chat レーンが必要。`chatLaunchTargets` は、台帳が読めない・不正な登録がある・repo が重複しているときは、全体を止めて対象を返さない。false から true への変更は、権限の拡大なので、よしひろさんの個別の承認が要る。
 - **ルーター** `src/router.js` (純粋関数、GitHubには触らない)
   - `parseRequest`: `[MONE-REQUEST] id=<ID> lane=<chat|work|codex|mone> op=<操作> status=open|cancel sha=<SHA>` を読む。既存の書式 `[MONE-ASK]` / `[AMU-ANSWER]` / `[MONE-REQUEST]` / `[AMU-RESULT]` を維持し、新しいID体系は作らない。
   - `decide`: `route / reject / cancel / skip-duplicate / skip-cancelled / needs-approval` を返す。
