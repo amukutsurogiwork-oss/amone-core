@@ -13,5 +13,8 @@
       "chatAutoLaunchEnabled": true
     },
     { "repo": "amukutsurogiwork-oss/yuhi-colorsing-system" }
+  ],
+  "reviewTargets": [
+    { "repo": "amukutsurogiwork-oss/yuhi-colorsing-system", "pr": 83, "readOnly": true, "operations": ["review"] }
   ]
 }

@@ -109,3 +109,64 @@ test("chatLaunchTargets expands raw short entries itself (safe defaults, no targ
   assert.deepEqual(chatLaunchTargets({ projects: [full({ consultPrNumber: 9, chatAutoLaunchEnabled: true })] }),
     { ok: true, targets: [{ repo: "o/full", pr: 9 }] });
 });
+
+// Review targets (Amu's design KUNI83-SCOPE-3): where Amu may READ a PR to review it. The consult PR (reply place) stays separate.
+// Anything unclear stops everything. A target never gives write access, and a registry line alone is not a grant.
+const { chatReviewTargets } = require("../src/registry");
+const reg = (reviewTargets, projects = [{ repo: "o/consult" }, { repo: "o/app" }]) => ({ projects, reviewTargets });
+const rt = (extra = {}) => ({ repo: "o/app", pr: 83, readOnly: true, operations: ["review"], ...extra });
+
+test("no reviewTargets: ok, none (the default is closed)", () => {
+  assert.deepEqual(chatReviewTargets({ projects: [{ repo: "o/app" }] }), { ok: true, targets: [] });
+});
+
+test("a valid read-only target for a registered repo is listed", () => {
+  assert.deepEqual(chatReviewTargets(reg([rt()])), { ok: true, targets: [{ repo: "o/app", pr: 83, operations: ["review"] }] });
+});
+
+test("anything unclear stops everything", () => {
+  const bad = [
+    [rt({ readOnly: false })], [rt({ readOnly: undefined })], [rt({ pr: 0 })], [rt({ pr: "83" })], [rt({ pr: 1.5 })],
+    [rt({ operations: [] })], [rt({ operations: ["review", "merge"] })], [rt({ operations: "review" })],
+    [rt({ repo: "o/unknown" })], [rt({ repo: 5 })], [rt({ extra: 1 })], [rt(), rt()], [rt(), rt({ repo: "O/APP" })],
+    ["x"], [null],
+  ];
+  for (const t of bad) assert.deepEqual(chatReviewTargets(reg(t)), { ok: false, reason: "invalid review target", targets: [] }, JSON.stringify(t));
+  assert.equal(chatReviewTargets(reg("x")).ok, false);
+  assert.equal(chatReviewTargets({ projects: "x" }).ok, false);
+  assert.equal(chatReviewTargets(null).ok, false);
+});
+
+test("the same repo with another PR number is a separate target", () => {
+  assert.equal(chatReviewTargets(reg([rt(), rt({ pr: 84 })])).targets.length, 2);
+});
+
+test("review targets do not make a repo a launch target", () => {
+  assert.deepEqual(chatLaunchTargets(reg([rt()])), { ok: true, targets: [] });
+});
+
+test("the real registry file: valid, read-only review target for yuhi PR 83, and the launch targets are unchanged", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  assert.deepEqual(chatReviewTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/yuhi-colorsing-system", pr: 83, operations: ["review"] }] });
+  assert.deepEqual(chatLaunchTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/ai-collab-sandbox", pr: 23 }] });
+});
+
+// Amu's review V10-REVIEW-1: stricter checks (fail closed), explicit required keys, no duplicate operations, only "review" reads another PR.
+test("V10: a malformed project entry or repo name stops everything; a project line alone grants nothing", () => {
+  const badProjects = [[{ repo: 5 }], [{ repo: "" }], [{ repo: "no-slash" }], [{ repo: "a/b/c" }], [{ repo: "a b/c" }], [null], ["x"], [{}]];
+  for (const projects of badProjects) assert.equal(chatReviewTargets({ projects: [...projects, { repo: "o/app" }], reviewTargets: [rt()] }).ok, false, JSON.stringify(projects));
+  assert.equal(chatReviewTargets(reg([rt({ repo: "" })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ repo: "bad repo/x" })], [{ repo: "bad repo/x" }])).ok, false);
+  assert.deepEqual(chatReviewTargets({ projects: [{ repo: "o/app" }] }), { ok: true, targets: [] });   // registered but not a target: nothing is granted
+});
+
+test("V10: each of the four keys is required, duplicates in operations are refused, and only review may read another PR", () => {
+  for (const k of ["repo", "pr", "readOnly", "operations"]) {
+    const t = rt(); delete t[k];
+    assert.equal(chatReviewTargets(reg([t])).ok, false, k);
+  }
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["review", "review"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["consult"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["review", "consult"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt()])).ok, true);
+});
