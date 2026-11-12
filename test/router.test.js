@@ -229,9 +229,23 @@ test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, 
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "sheet-copy-dryrun"), reg).action, "route");
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "sheet-copy-dryrun"), reg).action, "reject");
   const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
-  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun"]);
+  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read"]);
   assert.deepEqual(sb.approvalRequired, []);
   assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share/.test(o)).length, 0);
   const yuhi = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/yuhi-colorsing-system");
   assert.deepEqual(yuhi.guiOperations, []);
+});
+
+// Work op for reading held photos on screen (owner-approved 2026-11-12, read only): a dedicated name, work lane, sandbox entry only.
+test("real ledger: held-photo-read routes to Work for the sandbox entry only and is not a write or delete op", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const { expandRegistry } = require("../src/registry");
+  const reg = expandRegistry(raw);
+  const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=H1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
+    { repo, thread: 25, commentId: 7, trusted: true });
+  assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "held-photo-read"), reg).action, "route");
+  assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "held-photo-read"), reg).action, "reject");
+  const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
+  assert.ok(sb.allowedOperations.includes("held-photo-read") && sb.guiOperations.includes("held-photo-read"));
+  assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share|write/.test(o)).length, 0);
 });
