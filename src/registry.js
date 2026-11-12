@@ -63,7 +63,8 @@ function chatLaunchTargets(rawRegistry) {
   return { ok: true, targets };
 }
 
-const REVIEW_OPERATIONS = ["review", "consult"];
+const REVIEW_OPERATIONS = ["review"];   // only "review" may read another PR; answering stays in the consult PR
+const REPO_NAME = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const REVIEW_KEYS = ["repo", "pr", "readOnly", "operations"];
 
 /**
@@ -79,15 +80,17 @@ function chatReviewTargets(rawRegistry) {
   const list = rawRegistry.reviewTargets;
   if (list === undefined) return { ok: true, targets: [] };
   if (!Array.isArray(list)) return stop();
-  const repos = new Set(rawRegistry.projects.filter(isObject).map((p) => String(p.repo).toLowerCase()));
+  // every project line must be a well-formed repo name, or everything stops (a registered repo alone grants nothing)
+  if (rawRegistry.projects.some((p) => !isObject(p) || typeof p.repo !== "string" || !REPO_NAME.test(p.repo))) return stop();
+  const repos = new Set(rawRegistry.projects.map((p) => p.repo.toLowerCase()));
   const seen = new Set();
   const targets = [];
   for (const t of list) {
-    if (!isObject(t) || Object.keys(t).some((k) => !REVIEW_KEYS.includes(k))) return stop();
-    if (typeof t.repo !== "string" || !repos.has(t.repo.toLowerCase())) return stop();
+    if (!isObject(t) || Object.keys(t).length !== REVIEW_KEYS.length || REVIEW_KEYS.some((k) => !(k in t))) return stop();   // exactly the four keys
+    if (typeof t.repo !== "string" || !REPO_NAME.test(t.repo) || !repos.has(t.repo.toLowerCase())) return stop();
     if (!Number.isInteger(t.pr) || t.pr < 1) return stop();
     if (t.readOnly !== true) return stop();
-    if (!Array.isArray(t.operations) || !t.operations.length || t.operations.some((o) => !REVIEW_OPERATIONS.includes(o))) return stop();
+    if (!Array.isArray(t.operations) || !t.operations.length || new Set(t.operations).size !== t.operations.length || t.operations.some((o) => !REVIEW_OPERATIONS.includes(o))) return stop();
     const key = t.repo.toLowerCase() + "#" + t.pr;
     if (seen.has(key)) return stop();
     seen.add(key);

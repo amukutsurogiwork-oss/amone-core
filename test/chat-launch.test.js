@@ -150,3 +150,23 @@ test("the real registry file: valid, read-only review target for yuhi PR 83, and
   assert.deepEqual(chatReviewTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/yuhi-colorsing-system", pr: 83, operations: ["review"] }] });
   assert.deepEqual(chatLaunchTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/ai-collab-sandbox", pr: 23 }] });
 });
+
+// Amu's review V10-REVIEW-1: stricter checks (fail closed), explicit required keys, no duplicate operations, only "review" reads another PR.
+test("V10: a malformed project entry or repo name stops everything; a project line alone grants nothing", () => {
+  const badProjects = [[{ repo: 5 }], [{ repo: "" }], [{ repo: "no-slash" }], [{ repo: "a/b/c" }], [{ repo: "a b/c" }], [null], ["x"], [{}]];
+  for (const projects of badProjects) assert.equal(chatReviewTargets({ projects: [...projects, { repo: "o/app" }], reviewTargets: [rt()] }).ok, false, JSON.stringify(projects));
+  assert.equal(chatReviewTargets(reg([rt({ repo: "" })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ repo: "bad repo/x" })], [{ repo: "bad repo/x" }])).ok, false);
+  assert.deepEqual(chatReviewTargets({ projects: [{ repo: "o/app" }] }), { ok: true, targets: [] });   // registered but not a target: nothing is granted
+});
+
+test("V10: each of the four keys is required, duplicates in operations are refused, and only review may read another PR", () => {
+  for (const k of ["repo", "pr", "readOnly", "operations"]) {
+    const t = rt(); delete t[k];
+    assert.equal(chatReviewTargets(reg([t])).ok, false, k);
+  }
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["review", "review"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["consult"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt({ operations: ["review", "consult"] })])).ok, false);
+  assert.equal(chatReviewTargets(reg([rt()])).ok, true);
+});
