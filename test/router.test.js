@@ -217,3 +217,21 @@ test("registry operations and lanes must use the safe character set", () => {
   assert.ok(validateProject({ ...base, approvalRequired: ["a#b"] }).length > 0);
   assert.deepEqual(validateProject(base), []);
 });
+
+// Work op for a dry run on copies (Amu WORK-DRYRUN-6, owner-approved scope): a dedicated name, work lane only where the ledger lists it,
+// never borrowing screen-check; approvals and deletion are NOT part of this op.
+test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, and no existing op is widened", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const { expandRegistry } = require("../src/registry");
+  const reg = expandRegistry(raw);
+  const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=D1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
+    { repo, thread: 30, commentId: 5, trusted: true });
+  assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "sheet-copy-dryrun"), reg).action, "route");
+  assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "sheet-copy-dryrun"), reg).action, "reject");
+  const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
+  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun"]);
+  assert.deepEqual(sb.approvalRequired, []);
+  assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share/.test(o)).length, 0);
+  const yuhi = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/yuhi-colorsing-system");
+  assert.deepEqual(yuhi.guiOperations, []);
+});
