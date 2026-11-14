@@ -229,7 +229,7 @@ test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, 
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "sheet-copy-dryrun"), reg).action, "route");
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "sheet-copy-dryrun"), reg).action, "reject");
   const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
-  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read"]);
+  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read", "special"]);
   assert.deepEqual(sb.approvalRequired, []);
   assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share/.test(o)).length, 0);
   const yuhi = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/yuhi-colorsing-system");
@@ -248,4 +248,15 @@ test("real ledger: held-photo-read routes to Work for the sandbox entry only and
   const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
   assert.ok(sb.allowedOperations.includes("held-photo-read") && sb.guiOperations.includes("held-photo-read"));
   assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share|write/.test(o)).length, 0);
+});
+
+// Special role "全権" (policy v10, 2026-11-14): dormant by default; routable to Work only for the sandbox entry, never for others.
+test("real ledger: op=special routes to Work for the sandbox entry only", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const { expandRegistry } = require("../src/registry");
+  const reg = expandRegistry(raw);
+  const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=S1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
+    { repo, thread: 25, commentId: 9, trusted: true });
+  assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "special"), reg).action, "route");
+  assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "special"), reg).action, "reject");
 });
