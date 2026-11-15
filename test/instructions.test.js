@@ -1,6 +1,8 @@
 "use strict";
-// Regression: the Chat instruction pasted into the iPhone shortcut was cut at about 5,080 characters
-// (observed twice on 2026-11-15: the delivered text ended mid-sentence), so the safety rules at the end never reached the AI.
+// Regression: the Chat instruction pasted into the iPhone shortcut was cut (observed twice on 2026-11-15: the delivered text
+// ended mid-sentence), so the safety rules at the end never reached the AI.
+// Measured on 2026-11-15 with a numbered test text: the delivered text is cut at exactly 5,000 characters (newlines, spaces
+// and symbols all count). The working limit is 90% of that: 4,500 characters.
 // The instruction must stay short and end with a marker; each procedure file must also be short and end with a marker.
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -8,7 +10,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.join(__dirname, "..");
-const MAX_INSTRUCTION_CHARS = 3500;   // well below the ~5,080 cut point observed
+const MAX_INSTRUCTION_CHARS = 4500;   // 90% of the measured 5,000-character limit
 const MAX_PROCEDURE_CHARS = 3500;
 const INSTRUCTION_END = "【指示文の終わり 第14版】";
 
