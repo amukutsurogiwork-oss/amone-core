@@ -1,0 +1,26 @@
+name: collab-watch
+
+# Posts ONE "no result" notice for Work requests that have no [AMU-RESULT] after a while.
+# The code lives in amone-core and is pinned to one commit.
+# IMPORTANT: runs MUST be serialized (the concurrency block below), or two runs could post twice.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: collab-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: amukutsurogiwork-oss/amone-core/.github/actions/watch@<PINNED_FULL_COMMIT_SHA>
+        with:
+          minutes: '15'

@@ -1,0 +1,19 @@
+name: AMONE watch
+description: Post ONE "no result" notice for Work requests that have no [AMU-RESULT] after a while. Never re-sends or restarts anything.
+inputs:
+  minutes:
+    description: Minutes without a result before the notice (5 or more)
+    default: '15'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Check for requests without a result
+      shell: bash
+      run: node "$ACTION_PATH/../../../scripts/watch.js"
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ github.token }}
+        WATCH_MINUTES: ${{ inputs.minutes }}
