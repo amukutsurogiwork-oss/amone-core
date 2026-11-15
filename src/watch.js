@@ -38,7 +38,7 @@ function findNoResult(comments, nowMs, minutes = DEFAULT_MINUTES, opts = {}) {
   const ownerId = opts.ownerId == null ? null : opts.ownerId;
   const limit = minutes * 60 * 1000;
   const seen = new Map(); // id -> { last, done, notified, work }
-  const get = (id) => { if (!seen.has(id)) seen.set(id, { last: 0, done: false, notified: false, work: false }); return seen.get(id); };
+  const get = (id) => { if (!seen.has(id)) seen.set(id, { last: 0, done: false, notified: false, work: false, routedId: -1, resultId: -1 }); return seen.get(id); };
   for (const c of comments) {
     if (!c || typeof c.body !== "string") continue;
     const t = Date.parse(c.created_at);
@@ -46,11 +46,11 @@ function findNoResult(comments, nowMs, minutes = DEFAULT_MINUTES, opts = {}) {
     const head = headOf(c.body);
     if (head.startsWith("[AMONE-ROUTED]") && isBot(c)) {
       const id = reqId(head, "request");
-      if (id && field(head, "lane") === "work") { const e = get(id); e.work = true; e.last = Math.max(e.last, t); }
+      if (id && field(head, "lane") === "work") { const e = get(id); e.work = true; e.routedId = Math.max(e.routedId, Number(c.id) || 0); e.last = Math.max(e.last, t); }
     } else if (head.startsWith("[AMU-CLAIM]") && isOwnerComment(c, ownerId)) {
       const id = reqId(head, "request"); if (id) { const e = get(id); e.last = Math.max(e.last, t); }
     } else if (head.startsWith("[AMU-RESULT]") && isOwnerComment(c, ownerId)) {
-      const id = reqId(head, "request"); if (id) get(id).done = true;
+      const id = reqId(head, "request"); if (id) { const e = get(id); e.resultId = Math.max(e.resultId, Number(c.id) || 0); }
     } else if (head.startsWith("[AMONE-CANCELLED]") && isBot(c)) {
       const id = reqId(head, "request"); if (id) get(id).done = true;
     } else if (head.startsWith(NOTICE) && isBot(c)) {
@@ -59,6 +59,7 @@ function findNoResult(comments, nowMs, minutes = DEFAULT_MINUTES, opts = {}) {
   }
   const out = [];
   for (const [id, e] of seen) {
+    if (e.resultId > e.routedId) e.done = true;   // only a result posted AFTER the routed record counts (same order rule as allWorkFinished)
     if (!e.work || e.done || e.notified || e.last === 0) continue;   // a claim alone never creates a notice
     if (nowMs - e.last >= limit) out.push(id);
   }

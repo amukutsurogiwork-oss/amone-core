@@ -8,7 +8,8 @@ const OWNER = { login: "amukutsurogiwork-oss", id: 7 };
 const OPT = { ownerId: 7 };
 const at = (min) => new Date(Date.UTC(2026, 10, 15, 0, min, 0)).toISOString();
 const now = Date.UTC(2026, 10, 15, 0, 60, 0);
-const c = (body, min, user = OWNER) => ({ body, created_at: at(min), user, author_association: user === OWNER ? "OWNER" : "NONE" });
+let seq = 100;
+const c = (body, min, user = OWNER) => ({ id: ++seq, body, created_at: at(min), user, author_association: user === OWNER ? "OWNER" : "NONE" });
 
 test("routed 30 min ago with no result gets one notice", () => {
   const cs = [c("[AMONE-ROUTED] request=R1 lane=work op=x", 30, BOT)];
@@ -71,4 +72,9 @@ test("the intake reader accepts the notice as a bot comment that is not its own 
   const { noticeBody } = require("../src/watch");
   const cs = [{ id: 1, body: noticeBody("R1"), user: { login: "github-actions[bot]", type: "Bot", id: 41898282 } }];
   assert.equal(stateFromComments(cs, "o/r#25#").broken, false);
+});
+
+test("a result posted BEFORE the routed record does not count as done", () => {
+  const cs = [c("[AMU-RESULT] request=R1", 5), c("[AMONE-ROUTED] request=R1 lane=work", 30, BOT)];
+  assert.deepEqual(findNoResult(cs, now, 15, OPT), ["R1"]);
 });
