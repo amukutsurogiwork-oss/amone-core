@@ -68,6 +68,12 @@ function validateProject(p) {
     errors.push("allowedLanes has an unknown lane");
   }
   if (!isStrings(p.allowedOperations)) errors.push("allowedOperations must be an array of strings");
+  // Cause gate: a frozen lane or operation is rejected until the cause is identified (docs/approval-policy.md, v12).
+  for (const field of ["frozenLanes", "frozenOperations"]) {
+    if (p[field] !== undefined && !isStrings(p[field])) errors.push(`${field} must be an array of strings`);
+  }
+  if (isStrings(p.frozenLanes) && p.frozenLanes.some((l) => !LANES.includes(l))) errors.push("frozenLanes has an unknown lane");
+  if (isStrings(p.frozenOperations) && p.frozenOperations.some((op) => !SAFE_ID.test(op))) errors.push("frozenOperations has unsafe characters");
   for (const field of ["approvalRequired", "guiOperations"]) {
     if (p[field] !== undefined && !isStrings(p[field])) errors.push(`${field} must be an array of strings`);
   }
@@ -146,6 +152,8 @@ function decide(request, registry, ledger = {}) {
   if (entry && entry.state === "routed") return result("skip-duplicate", "request already routed");
 
   if (!LANES.includes(request.lane)) return result("reject", "unknown lane");
+  if ((project.frozenLanes || []).includes(request.lane)) return result("reject", "lane frozen until the cause is identified");
+  if (request.operation && (project.frozenOperations || []).includes(request.operation)) return result("reject", "operation frozen until the cause is identified");
   if (!project.allowedLanes.includes(request.lane)) return result("reject", "lane not allowed for project");
   if (!request.operation) return result("reject", "operation missing");
   if (!project.allowedOperations.includes(request.operation)) {

@@ -9,6 +9,7 @@
       "guiOperations": ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read", "special", "form-create"],
       "notify": "github-issue",
       "priority": "normal",
+      "frozenLanes": ["work"],
       "consultPrNumber": 23,
       "chatAutoLaunchEnabled": true
     },
