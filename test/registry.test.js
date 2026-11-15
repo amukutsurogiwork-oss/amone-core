@@ -61,3 +61,11 @@ test("the action always uses the workflow's own token (records are read back onl
   assert.doesNotMatch(a, /^inputs:/m, "callers must not be able to pass another token");
   assert.match(a, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
 });
+
+test("cause gate: a frozen chat lane is not an automatic launch target", () => {
+  const { chatLaunchTargets } = require("../src/registry");
+  const base = { repo: "o/r", allowedLanes: ["chat"], allowedOperations: ["design"], consultPrNumber: 5, chatAutoLaunchEnabled: true };
+  assert.deepEqual(chatLaunchTargets({ projects: [base] }).targets, [{ repo: "o/r", pr: 5 }]);
+  assert.deepEqual(chatLaunchTargets({ projects: [{ ...base, frozenLanes: ["chat"] }] }).targets, []);
+  assert.deepEqual(chatLaunchTargets({ projects: [{ ...base, frozenLanes: ["work"] }] }).targets, [{ repo: "o/r", pr: 5 }]);
+});

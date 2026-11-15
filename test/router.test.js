@@ -4,6 +4,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseRequest, validateProject, decide, guardSideEffect } = require("../src/router");
 
+// Real-ledger tests check routing rules, so they read the ledger with the cause-gate freeze lifted.
+const withoutFreeze = (raw) => ({ ...raw, projects: raw.projects.map(({ frozenLanes, frozenOperations, ...p }) => p) });
+
 const registry = {
   projects: [{
     repo: "o/p", allowedLanes: ["chat", "codex", "mone"],
@@ -223,7 +226,7 @@ test("registry operations and lanes must use the safe character set", () => {
 test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, and no existing op is widened", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   const { expandRegistry } = require("../src/registry");
-  const reg = expandRegistry(raw);
+  const reg = expandRegistry(withoutFreeze(raw));
   const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=D1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
     { repo, thread: 30, commentId: 5, trusted: true });
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "sheet-copy-dryrun"), reg).action, "route");
@@ -240,7 +243,7 @@ test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, 
 test("real ledger: held-photo-read routes to Work for the sandbox entry only and is not a write or delete op", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   const { expandRegistry } = require("../src/registry");
-  const reg = expandRegistry(raw);
+  const reg = expandRegistry(withoutFreeze(raw));
   const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=H1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
     { repo, thread: 25, commentId: 7, trusted: true });
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "held-photo-read"), reg).action, "route");
@@ -254,7 +257,7 @@ test("real ledger: held-photo-read routes to Work for the sandbox entry only and
 test("real ledger: op=special routes to Work for the sandbox entry only", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   const { expandRegistry } = require("../src/registry");
-  const reg = expandRegistry(raw);
+  const reg = expandRegistry(withoutFreeze(raw));
   const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=S1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
     { repo, thread: 25, commentId: 9, trusted: true });
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "special"), reg).action, "route");
@@ -265,9 +268,34 @@ test("real ledger: op=special routes to Work for the sandbox entry only", () => 
 test("real ledger: op=form-create routes to Work for the sandbox entry only", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   const { expandRegistry } = require("../src/registry");
-  const reg = expandRegistry(raw);
+  const reg = expandRegistry(withoutFreeze(raw));
   const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=F1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
     { repo, thread: 25, commentId: 11, trusted: true });
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "form-create"), reg).action, "route");
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "form-create"), reg).action, "reject");
+});
+
+// Cause gate (policy v12): a frozen lane or operation is rejected; the real ledger freezes the Work lane for the sandbox.
+test("cause gate: a frozen lane or operation is rejected, others still route", () => {
+  const reg = { projects: [{ repo: "o/r", allowedLanes: ["chat", "work"], allowedOperations: ["design", "screen-check", "form-create"],
+    guiOperations: ["screen-check", "form-create"], frozenLanes: ["work"] }] };
+  const mk = (lane, op) => parseRequest(`[MONE-REQUEST] id=G1 lane=${lane} op=${op}`, { repo: "o/r", thread: 5, commentId: 3, trusted: true });
+  assert.equal(decide(mk("work", "screen-check"), reg).action, "reject");
+  assert.match(decide(mk("work", "screen-check"), reg).reason, /frozen/);
+  assert.equal(decide(mk("chat", "design"), reg).action, "route");
+  const reg2 = { projects: [{ ...reg.projects[0], frozenLanes: [], frozenOperations: ["form-create"] }] };
+  assert.equal(decide(mk("work", "form-create"), reg2).action, "reject");
+  assert.equal(decide(mk("work", "screen-check"), reg2).action, "route");
+  assert.ok(validateProject({ ...reg.projects[0], frozenLanes: ["nope"] }).length > 0);
+  assert.ok(validateProject({ ...reg.projects[0], frozenOperations: "x" }).length > 0);
+});
+test("cause gate: the real ledger freezes the Work lane for the sandbox", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const { expandRegistry } = require("../src/registry");
+  const reg = expandRegistry(raw);
+  const r = parseRequest("[MONE-REQUEST] id=Z1 lane=work op=form-create sha=0123456789abcdef0123456789abcdef01234567",
+    { repo: "amukutsurogiwork-oss/ai-collab-sandbox", thread: 25, commentId: 12, trusted: true });
+  assert.equal(decide(r, reg).action, "reject");
+  const chat = parseRequest("[MONE-ASK] id=Z2 lane=chat op=design round=1 status=open", { repo: "amukutsurogiwork-oss/ai-collab-sandbox", thread: 23, commentId: 13, trusted: true });
+  assert.ok(Array.isArray(reg.projects[0].frozenLanes) && reg.projects[0].frozenLanes.includes("work"));
 });

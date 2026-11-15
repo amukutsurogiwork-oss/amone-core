@@ -63,7 +63,9 @@ test("on a pull request the SHA must be given and current", () => {
 });
 
 test("the real registry file is valid", () => {
-  const real = expandRegistry(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8")));
+  // These tests check routing rules, so read the ledger with the cause-gate freeze lifted.
+  const rawLedger = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const real = expandRegistry({ ...rawLedger, projects: rawLedger.projects.map(({ frozenLanes, frozenOperations, ...p }) => p) });
   for (const p of real.projects) assert.deepEqual(validateProject(p), []);
 });
 
@@ -231,7 +233,9 @@ test("the original request edited to another ID after routing is not accepted ag
 // ---- Work lane in the real registry ----
 
 test("the sandbox registry routes a GUI check to Work and refuses other Work operations", () => {
-  const real = expandRegistry(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8")));
+  // These tests check routing rules, so read the ledger with the cause-gate freeze lifted.
+  const rawLedger = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const real = expandRegistry({ ...rawLedger, projects: rawLedger.projects.map(({ frozenLanes, frozenOperations, ...p }) => p) });
   const repo = real.projects[0].repo;
   const sha = "abc1234def5678abc1234def5678abc1234def56";
   const go = (body) => plan({ repo, thread: 3, isPullRequest: true, headSha: sha, comment: owner(7, body), comments: [], registry: real });
@@ -263,7 +267,9 @@ test("a Work request on a pull request asks for the Work label; cancelling it as
 // ---- Work lane: review and consult as well as screen-check ----
 
 test("the sandbox registry lets Work take review and consult requests on a PR", () => {
-  const real = expandRegistry(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8")));
+  // These tests check routing rules, so read the ledger with the cause-gate freeze lifted.
+  const rawLedger = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const real = expandRegistry({ ...rawLedger, projects: rawLedger.projects.map(({ frozenLanes, frozenOperations, ...p }) => p) });
   const repo = real.projects[0].repo;
   const sha = "abc1234def5678abc1234def5678abc1234def56";
   const go = (body) => plan({ repo, thread: 3, isPullRequest: true, headSha: sha, comment: owner(7, body), comments: [], registry: real });

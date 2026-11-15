@@ -58,7 +58,8 @@ function chatLaunchTargets(rawRegistry) {
     if (seen.has(key)) return stop("duplicate repo");
     seen.add(key);
   }
-  const targets = registry.projects.filter((p) => p.chatAutoLaunchEnabled === true)
+  // Cause gate (policy v12): a project whose chat lane is frozen is not started automatically.
+  const targets = registry.projects.filter((p) => p.chatAutoLaunchEnabled === true && !(Array.isArray(p.frozenLanes) && p.frozenLanes.includes("chat")))
     .map((p) => ({ repo: p.repo, pr: p.consultPrNumber }));
   return { ok: true, targets };
 }
