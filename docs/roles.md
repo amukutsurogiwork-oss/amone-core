@@ -36,6 +36,7 @@
 ## サブ担当のモデル
 | 仕事の種類 | モデル | 担当 |
 |---|---|---|
-| 答えのない問題を考える | Opus | 原因究明係 (incident-analyst)、新方式研究係 (methods-researcher)、切り替え係 (rollout-keeper) |
-| 照らし合わせ・決まった作業 | Sonnet | 承認チェック係 (approval-auditor)、台帳方針係 (ledger-policy-checker)、テスト係 (regression-tester)、ホームページ係 (homepage-keeper) |
+| 答えのない問題を考える | Opus | 原因究明係 (incident-analyst)、新方式研究係 (methods-researcher) |
+| 照らし合わせ・決まった作業 | Sonnet | 承認チェック係 (approval-auditor)、台帳方針係 (ledger-policy-checker)、テスト係 (regression-tester)、ホームページ係 (homepage-keeper)、切り替え係 (rollout-keeper) |
 - 照らし合わせ担当の結果は、最後に、モネが確かめる。
+- よしひろさんの指示 (2026-11-16)「ソネットでも大丈夫そうなら変えてもいいよ」で、切り替え係を Sonnet に変えた。Opus の2人は、本当に必要なときだけ呼ぶ。
