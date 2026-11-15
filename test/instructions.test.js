@@ -11,7 +11,7 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const MAX_INSTRUCTION_CHARS = 4500;   // 90% of the measured 5,000-character limit
-const INSTRUCTION_END = "【指示文の終わり 第14版】";
+const INSTRUCTION_END = "【指示文の終わり 第15版】";
 
 function instruction() {
   const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
