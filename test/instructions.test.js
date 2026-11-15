@@ -30,3 +30,17 @@ test("the Chat instruction ends with the end marker", () => {
 test("the Chat instruction mentions the end marker rule near its start", () => {
   assert.ok(instruction().slice(0, 400).includes(INSTRUCTION_END));
 });
+
+// The ChatGPT custom instruction for Amu (docs/deployed/amu-custom-instructions.md): short and ends with a marker.
+test("the Amu custom instruction is short and ends with its end marker", () => {
+  const doc = fs.readFileSync(path.join(root, "docs/deployed/amu-custom-instructions.md"), "utf8");
+  const a = doc.indexOf("```") + 3;
+  const b = doc.indexOf("```", a);
+  assert.ok(a > 2 && b > a);
+  const t = doc.slice(a, b).trim();
+  assert.ok([...t].length <= MAX_INSTRUCTION_CHARS, `custom instruction is ${[...t].length} chars`);
+  assert.ok(t.endsWith("【カスタム指示の終わり 第1版】"));
+  // fail-closed: the pasted block itself must tell Amu to stop when the end marker is missing (near its start)
+  const head = t.slice(0, 200);
+  assert.ok(head.includes("【カスタム指示の終わり 第1版】") && head.includes("見えないとき") && head.includes("止まる"));
+});
