@@ -229,7 +229,7 @@ test("real ledger: sheet-copy-dryrun routes to Work for the sandbox entry only, 
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "sheet-copy-dryrun"), reg).action, "route");
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "sheet-copy-dryrun"), reg).action, "reject");
   const sb = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/ai-collab-sandbox");
-  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read", "special"]);
+  assert.deepEqual(sb.guiOperations, ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read", "special", "form-create"]);
   assert.deepEqual(sb.approvalRequired, []);
   assert.equal(sb.allowedOperations.filter((o) => /delete|deploy|publish|share/.test(o)).length, 0);
   const yuhi = reg.projects.find((p) => p.repo === "amukutsurogiwork-oss/yuhi-colorsing-system");
@@ -259,4 +259,15 @@ test("real ledger: op=special routes to Work for the sandbox entry only", () => 
     { repo, thread: 25, commentId: 9, trusted: true });
   assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "special"), reg).action, "route");
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "special"), reg).action, "reject");
+});
+
+// Dedicated op for creating one Google Form via Work (owner request 2026-11-15): sandbox only, never for other projects.
+test("real ledger: op=form-create routes to Work for the sandbox entry only", () => {
+  const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
+  const { expandRegistry } = require("../src/registry");
+  const reg = expandRegistry(raw);
+  const mk = (repo, op, lane = "work") => parseRequest(`[MONE-REQUEST] id=F1 lane=${lane} op=${op} sha=0123456789abcdef0123456789abcdef01234567`,
+    { repo, thread: 25, commentId: 11, trusted: true });
+  assert.equal(decide(mk("amukutsurogiwork-oss/ai-collab-sandbox", "form-create"), reg).action, "route");
+  assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "form-create"), reg).action, "reject");
 });
