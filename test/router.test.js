@@ -275,7 +275,7 @@ test("real ledger: op=form-create routes to Work for the sandbox entry only", ()
   assert.equal(decide(mk("amukutsurogiwork-oss/yuhi-colorsing-system", "form-create"), reg).action, "reject");
 });
 
-// Cause gate (policy v12): a frozen lane or operation is rejected; the real ledger freezes the Work lane for the sandbox.
+// Cause gate (policy v12): a frozen lane or operation is rejected; the freeze mechanism is tested with a synthetic ledger. The real ledger was released by the owner on 2026-11-15 (policy v13); to freeze again, add frozenLanes to the registry entry.
 test("cause gate: a frozen lane or operation is rejected, others still route", () => {
   const reg = { projects: [{ repo: "o/r", allowedLanes: ["chat", "work"], allowedOperations: ["design", "screen-check", "form-create"],
     guiOperations: ["screen-check", "form-create"], frozenLanes: ["work"] }] };
@@ -289,13 +289,12 @@ test("cause gate: a frozen lane or operation is rejected, others still route", (
   assert.ok(validateProject({ ...reg.projects[0], frozenLanes: ["nope"] }).length > 0);
   assert.ok(validateProject({ ...reg.projects[0], frozenOperations: "x" }).length > 0);
 });
-test("cause gate: the real ledger freezes the Work lane for the sandbox", () => {
+test("cause gate: the real ledger has no frozen lane (released by the owner, policy v13) and the read-only screen-check routes", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   const { expandRegistry } = require("../src/registry");
   const reg = expandRegistry(raw);
-  const r = parseRequest("[MONE-REQUEST] id=Z1 lane=work op=form-create sha=0123456789abcdef0123456789abcdef01234567",
+  const r = parseRequest("[MONE-REQUEST] id=Z1 lane=work op=screen-check sha=0123456789abcdef0123456789abcdef01234567",
     { repo: "amukutsurogiwork-oss/ai-collab-sandbox", thread: 25, commentId: 12, trusted: true });
-  assert.equal(decide(r, reg).action, "reject");
-  const chat = parseRequest("[MONE-ASK] id=Z2 lane=chat op=design round=1 status=open", { repo: "amukutsurogiwork-oss/ai-collab-sandbox", thread: 23, commentId: 13, trusted: true });
-  assert.ok(Array.isArray(reg.projects[0].frozenLanes) && reg.projects[0].frozenLanes.includes("work"));
+  assert.equal(decide(r, reg).action, "route");
+  assert.ok(!(reg.projects[0].frozenLanes || []).length);
 });
