@@ -2,7 +2,17 @@
 よしひろさんの指示 (2026-11-15): 「専門のＡＩエージェントを作る。担当が必要になったら、自動的にどんどん作っていく」。
 - 窓口と最終のまとめは、モネだけ。係は、モネが、必要なときに呼ぶ (常駐させない)。
 - 係の定義は、`.claude/agents/<名前>.md` に置く (1人につき1ファイル。仕事・使える道具・やってはいけないこと)。
-- いまの係: incident-analyst (原因究明係)、ledger-policy-checker (台帳・方針係)、homepage-keeper (ホームページ係)。
+- いまの係: incident-analyst (原因究明係)、ledger-policy-checker (台帳・方針係)、homepage-keeper (ホームページ係)、approval-auditor (承認・受付チェック係)、rollout-keeper (切り替え係)、regression-tester (テスト係)。
+## 問題の種類 → 受け持つ係 (自動で呼ぶ)
+| 起きたこと | 受け持つ係 | 並行して頼む相手 |
+|---|---|---|
+| 止まった・結果が出ない・想定外 | incident-analyst | アム Chat (独立の分析) |
+| 承認・使い回し・期限のずれ | approval-auditor | アム Chat |
+| 台帳・方針・手順書の食い違い | ledger-policy-checker | — |
+| 指示文・固定先の切り替え | rollout-keeper | アム Chat |
+| 直しにテストが要る | regression-tester | Codex (直しの PR のレビュー) |
+| ホームページ | homepage-keeper | — |
+該当する係がなければ、上の条件で、新しい係を作る。どの問題も、最初に `docs/incident-review.md` の流れで始め、凍結は `docs/approval-policy.md` の原因特定ゲートに従う。
 ## 新しい係を、モネが自動で作ってよい条件 (全部そろうとき)
 1. 文書 (定義ファイル) を足すだけで、新しいアカウント・権限・公開・削除・本番の変更をしない。
 2. お金が増えない (有料API・課金・クレジットを使わない)。利用量への影響が不明なときは、作らず、聞く。
