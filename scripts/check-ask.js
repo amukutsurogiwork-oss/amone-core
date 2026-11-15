@@ -26,8 +26,8 @@ function checkAsk(text) {
   const body = lines.slice(1).join("\n");
   const tag = (first.match(/^\[(MONE-[A-Z]+)\]/) || [])[1];
   if (!tag) return "先頭行が [MONE-ASK] / [MONE-REPLY] / [MONE-NOTE] のどれでもありません";
-  if (tag === "MONE-NOTE") return /^\[MONE-NOTE\] id=\S+/.test(first) ? null : "[MONE-NOTE] の後に id=<相談ID> が必要です";
   if (/@codex/i.test(text)) return "半角の「@codex」が含まれています(全角「＠codex」にしてください)";
+  if (tag === "MONE-NOTE") return /^\[MONE-NOTE\] id=\S+/.test(first) ? null : "[MONE-NOTE] の後に id=<相談ID> が必要です";
   const f = Object.fromEntries(first.replace(/^\[[^\]]+\]\s*/, "").split(/\s+/).filter(Boolean).map((kv) => {
     const i = kv.indexOf("=");
     return i < 0 ? [kv, ""] : [kv.slice(0, i), kv.slice(i + 1)];
