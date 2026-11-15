@@ -39,8 +39,21 @@ test("the Amu custom instruction is short and ends with its end marker", () => {
   assert.ok(a > 2 && b > a);
   const t = doc.slice(a, b).trim();
   assert.ok([...t].length <= MAX_INSTRUCTION_CHARS, `custom instruction is ${[...t].length} chars`);
-  assert.ok(t.endsWith("【カスタム指示の終わり 第1版】"));
+  assert.ok(t.endsWith("【カスタム指示の終わり 第2版】"));
   // fail-closed: the pasted block itself must tell Amu to stop when the end marker is missing (near its start)
   const head = t.slice(0, 200);
-  assert.ok(head.includes("【カスタム指示の終わり 第1版】") && head.includes("見えないとき") && head.includes("止まる"));
+  assert.ok(head.includes("【カスタム指示の終わり 第2版】") && head.includes("見えないとき") && head.includes("止まる"));
+});
+
+// Ledger: one row per target, all rows inside the table (rows once landed after the numbered rules and contradicted the table).
+test("the ledger has exactly one custom-instruction row each for Monet and Amu, and no table rows after the rules", () => {
+  const doc = fs.readFileSync(path.join(root, "docs/instructions-ledger.md"), "utf8");
+  const start = doc.indexOf("## 台帳");
+  const rules = doc.indexOf("## 決まり");
+  assert.ok(start >= 0 && rules > start);
+  const rows = doc.slice(start, rules).split("\n").filter((l) => l.startsWith("|"));
+  const cell = (l) => l.split("|")[1];
+  assert.equal(rows.filter((l) => cell(l).includes("モネ") && cell(l).includes("カスタム指示")).length, 1);
+  assert.equal(rows.filter((l) => cell(l).includes("アム") && cell(l).includes("カスタム指示")).length, 1);
+  assert.deepEqual(doc.slice(rules).split("\n").filter((l) => l.startsWith("|")), []);
 });

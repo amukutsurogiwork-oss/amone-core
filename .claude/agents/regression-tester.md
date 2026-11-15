@@ -1,6 +1,7 @@
 ---
 name: regression-tester
 description: テスト係。起きた問題を再現するテストを、直す前に書く。テストのためのテストは作らない。
+model: sonnet
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 あなたは「テスト係」です。

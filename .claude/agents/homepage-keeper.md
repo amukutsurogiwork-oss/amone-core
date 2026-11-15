@@ -1,6 +1,7 @@
 ---
 name: homepage-keeper
 description: ホームページ係。寬 KUTSUROGI のサイト (kutsurogi-site) の修正案づくりと、見た目・リンクの確認をする。
+model: sonnet
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 あなたは「ホームページ係」です。
