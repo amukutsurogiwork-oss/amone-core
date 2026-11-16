@@ -33,3 +33,22 @@ test("no [AMU-ANSWER] means ok", () => {
   assert.equal(wakeAllowed([], new Date()).ok, true);
   assert.equal(wakeAllowed([{ body: "hi", created_at: "2026-11-16T04:32:00Z" }], new Date()).ok, true);
 });
+
+// Real case 2026-11-16 14:50:48 JST: Amu's last post was [AMU-CONSULT], checker said OK after ~30s.
+test("any [AMU-...] post counts, not only [AMU-ANSWER]", () => {
+  const now = new Date("2026-11-16T05:51:15Z");
+  for (const body of ["[AMU-CONSULT] id=X", "[AMU-REPORT] id=X", "[AMU-RESULT] id=X"]) {
+    const r = wakeAllowed([{ body, created_at: "2026-11-16T05:50:45Z" }], now);
+    assert.deepEqual(r, { ok: false, waitSeconds: 90 }, body);
+  }
+});
+
+test("newest [AMU-...] wins over an older [AMU-ANSWER]; [MONE-] posts are ignored", () => {
+  const c = [
+    ans("2026-11-16T05:00:00Z"),
+    { body: "[AMU-CONSULT] id=X", created_at: "2026-11-16T05:50:45Z" },
+    { body: "[MONE-ASK] y", created_at: "2026-11-16T05:51:10Z" },
+  ];
+  assert.equal(wakeAllowed(c, new Date("2026-11-16T05:51:15Z")).ok, false);
+  assert.equal(wakeAllowed(c, new Date("2026-11-16T05:52:45Z")).ok, true);
+});

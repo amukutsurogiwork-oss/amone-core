@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// Checks that 2+ minutes passed since Amu's last [AMU-ANSWER] before sending the wake mail.
+// Checks that 2+ minutes passed since Amu's last [AMU-*] post before sending the wake mail.
 // Usage: node scripts/check-wake-gap.js <comments.json>   (output of `gh api .../issues/23/comments --paginate`)
 const fs = require("node:fs");
 
@@ -10,7 +10,7 @@ const GAP_SECONDS = 120;
 function wakeAllowed(comments, now = new Date()) {
   let last = null;
   for (const c of comments || []) {
-    if (typeof c.body !== "string" || !c.body.startsWith("[AMU-ANSWER]")) continue;
+    if (typeof c.body !== "string" || !c.body.startsWith("[AMU-")) continue;
     const t = Date.parse(c.created_at);
     if (Number.isNaN(t)) continue;
     if (last === null || t > last) last = t;
