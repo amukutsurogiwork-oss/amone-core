@@ -40,3 +40,8 @@ test("a deadline within 1 hour of the 3-day limit is rejected, more margin passe
   assert.match(checkRequest(req("2026-11-19 22:30"), at("2026-11-16 23:08")), /3日/);
   assert.equal(checkRequest(req("2026-11-19 22:00"), at("2026-11-16 23:08")), null);
 });
+
+// Codex review on PR #67: JavaScript turns 2026-11-31 into 12-01 silently; a nonexistent date must be rejected.
+test("a nonexistent calendar date is rejected", () => {
+  assert.match(checkRequest(req("2026-11-31 00:00"), at("2026-11-29 00:00")), /日付/);
+});

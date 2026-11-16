@@ -20,7 +20,9 @@ function checkRequest(text, now = new Date()) {
   const m = s.match(/^期限:\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/m);
   if (!m) return "期限: YYYY-MM-DD HH:MM (日本時間) がありません";
   const deadline = new Date(`${m[1]}T${m[2]}:00+09:00`);
-  if (Number.isNaN(deadline.getTime())) return "期限の日付が読めません";
+  // JavaScript silently turns 2026-11-31 into 12-01; compare the written date with the parsed JST date.
+  const jst = Number.isNaN(deadline.getTime()) ? "" : new Date(deadline.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  if (jst !== m[1]) return "期限の日付が、ありえない日付です";
   if (deadline.getTime() <= now.getTime()) return "期限が、もう過ぎています";
   if (deadline.getTime() > now.getTime() + LIMIT_MS - MARGIN_MS) return "期限が、投稿から3日(余裕1時間)を超えています";
   return null;
