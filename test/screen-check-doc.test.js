@@ -21,3 +21,15 @@ test("quiet screen-check replaces steps 1-3 explicitly and does not keep the PR 
   assert.ok(quiet.includes("手順1〜3の代わりに"), "quiet section must say it replaces steps 1-3");
   assert.ok(!quiet.includes("省くのは**手順1"), "quiet section still says only step 1 is omitted");
 });
+
+// Regression (QUIET-SCREEN-3, 2026-11-16): the quiet section limited the trial to "only once", so Work correctly
+// stopped the owner-approved follow-up trial (the positive control). The section must allow repeated trials
+// (each with its own request ID, within the owner's count) and define the positive-control variant.
+test("quiet screen-check allows repeated trials within the owner's count and defines the positive control", () => {
+  const doc = fs.readFileSync(path.join(__dirname, "..", "docs/work-ops/screen-check.md"), "utf8");
+  const quiet = doc.slice(doc.indexOf("### 静かな読み取り試験"));
+  assert.ok(!quiet.includes("試験を**1回だけ**行う"), "quiet section still limits the trial to once");
+  assert.ok(!quiet.includes("目的: 静かな読み取り試験(1回だけ)"), "request template still says once");
+  assert.ok(quiet.includes("陽性対照"), "positive-control variant is not defined");
+  assert.ok(quiet.includes("依頼IDごとに1回"), "each request must still run at most once");
+});
