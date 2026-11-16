@@ -35,8 +35,8 @@ test("the documented cancellation format passes", () => {
   assert.equal(checkRequest("[MONE-REQUEST] id=X1 status=cancel\n", at("2026-11-16 23:08")), null);
 });
 
-// Owner (2026-11-17): "時間ギリギリ攻めるとまた問題起きるかもだからちょっと余裕みといてね" — keep a 12-hour margin.
-test("a deadline within 12 hours of the 3-day limit is rejected", () => {
-  assert.match(checkRequest(req("2026-11-19 22:00"), at("2026-11-16 23:08")), /3日/);
-  assert.equal(checkRequest(req("2026-11-19 11:00"), at("2026-11-16 23:08")), null);
+// Owner (2026-11-17): "時間ギリギリ攻めるとまた問題起きるかもだからちょっと余裕みといてね", then "1時間くらいで大丈夫じゃない？？" — keep a 1-hour margin.
+test("a deadline within 1 hour of the 3-day limit is rejected, more margin passes", () => {
+  assert.match(checkRequest(req("2026-11-19 22:30"), at("2026-11-16 23:08")), /3日/);
+  assert.equal(checkRequest(req("2026-11-19 22:00"), at("2026-11-16 23:08")), null);
 });
