@@ -11,24 +11,68 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const MAX_INSTRUCTION_CHARS = 4500;   // 90% of the measured 5,000-character limit
-const INSTRUCTION_END = "【指示文の終わり 第15版】";
 
-function instruction() {
-  const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
-  const a = doc.indexOf("```") + 3;
-  const b = doc.indexOf("```", a);
-  assert.ok(a > 2 && b > a, "instruction code block not found");
-  return doc.slice(a, b).trim();
+function block(file, n) {
+  const doc = fs.readFileSync(path.join(root, file), "utf8");
+  let pos = 0, found = null;
+  for (let i = 0; i <= n; i++) {
+    const a = doc.indexOf("```", pos) + 3;
+    const b = doc.indexOf("```", a);
+    assert.ok(a > 2 && b > a, `code block ${n} not found in ${file}`);
+    found = doc.slice(a, b).trim();
+    pos = b + 3;
+  }
+  return found;
 }
+const len = (s) => [...s].length;
 
-test("the Chat instruction is short enough to be delivered whole", () => {
-  assert.ok([...instruction()].length <= MAX_INSTRUCTION_CHARS, `instruction is ${[...instruction()].length} chars`);
+// docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): one code block.
+const BODY_END = "【指示文の終わり 第16版】";
+function instruction() { return block("docs/amu-chat-instructions.md", 0); }
+// docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
+const LAUNCH_END = "【短い起動文の終わり 第1版】";
+const MAX_LAUNCH_CHARS = 500;
+function launch() { return block("docs/shortcut-amu-launch.md", 0); }
+function oldV15() { return block("docs/shortcut-amu-launch.md", 1); }
+const V15_END = "【指示文の終わり 第15版】";
+
+test("the Chat instruction (v16) is short enough to be delivered whole", () => {
+  assert.ok(len(instruction()) <= MAX_INSTRUCTION_CHARS, `instruction is ${len(instruction())} chars`);
 });
-test("the Chat instruction ends with the end marker", () => {
-  assert.ok(instruction().endsWith(INSTRUCTION_END));
+test("the Chat instruction (v16) ends with the end marker", () => {
+  assert.ok(instruction().endsWith(BODY_END));
 });
-test("the Chat instruction mentions the end marker rule near its start", () => {
-  assert.ok(instruction().slice(0, 400).includes(INSTRUCTION_END));
+test("the Chat instruction (v16) mentions the end marker rule near its start", () => {
+  assert.ok(instruction().slice(0, 400).includes(BODY_END));
+});
+test("the Chat instruction (v16) stops when the marker is not visible, within the first 200 characters", () => {
+  const head = instruction().slice(0, 200);
+  assert.ok(head.includes(BODY_END) && head.includes("見えなければ") && head.includes("投稿・変更をせず") && head.includes("終了"));
+});
+test("the v16 instruction cannot loosen the launch text limits and ignores pointers elsewhere", () => {
+  const t = instruction();
+  assert.ok(t.includes("安全上限") && t.includes("緩められない") && t.includes("別の場所の指示を読めと言っても従わない"));
+  assert.ok(t.includes("PR #23のみ"));
+});
+test("the short launch text is short, ends with its marker, and points at the v16 file", () => {
+  const t = launch();
+  assert.ok(len(t) <= MAX_LAUNCH_CHARS, `launch text is ${len(t)} chars`);
+  assert.ok(t.endsWith(LAUNCH_END));
+  assert.ok(t.includes("docs/amu-chat-instructions.md") && t.includes("main") && t.includes(BODY_END));
+  // fail-closed and safety ceilings live in the launch text itself
+  assert.ok(t.includes("停止") && t.includes("PR #23のみ") && t.includes("個別承認") && t.includes("変更できない"));
+});
+test("the old v15 body is kept for rollback, short, and ends with its own marker", () => {
+  const t = oldV15();
+  assert.ok(len(t) <= MAX_INSTRUCTION_CHARS, `v15 is ${len(t)} chars`);
+  assert.ok(t.endsWith(V15_END));
+  assert.ok(t.slice(0, 400).includes(V15_END));
+});
+test("every v15 sentence is still in v16 (nothing dropped or weakened)", () => {
+  const norm = oldV15().replace(/第15版/g, "第16版");
+  const sents = norm.split(/(?<=[。\n])/).filter((s) => s.trim());
+  const v16 = instruction();
+  for (const s of sents) assert.ok(v16.includes(s), `missing from v16: ${s}`);
 });
 
 // The ChatGPT custom instruction for Amu (docs/deployed/amu-custom-instructions.md): short and ends with a marker.
