@@ -2,11 +2,11 @@
 "use strict";
 
 // Checks a Mone Work request before posting. Usage: node scripts/check-request.js <file>
-// The deadline must be in the future and at most 3 days after posting, with a 30-minute margin,
+// The deadline must be in the future and at most 3 days after posting, with a 12-hour margin (owner, 2026-11-17),
 // because Work compares it with the comment's posting time (FORM-RESUME-3 stopped 1m33s over).
 const fs = require("node:fs");
 
-const MARGIN_MS = 30 * 60 * 1000;
+const MARGIN_MS = 12 * 60 * 60 * 1000;
 const LIMIT_MS = 3 * 24 * 60 * 60 * 1000;
 
 // Returns null when fine, otherwise a one-line Japanese reason.
@@ -22,7 +22,7 @@ function checkRequest(text, now = new Date()) {
   const deadline = new Date(`${m[1]}T${m[2]}:00+09:00`);
   if (Number.isNaN(deadline.getTime())) return "期限の日付が読めません";
   if (deadline.getTime() <= now.getTime()) return "期限が、もう過ぎています";
-  if (deadline.getTime() > now.getTime() + LIMIT_MS - MARGIN_MS) return "期限が、投稿から3日(余裕30分)を超えています";
+  if (deadline.getTime() > now.getTime() + LIMIT_MS - MARGIN_MS) return "期限が、投稿から3日(余裕12時間)を超えています";
   return null;
 }
 
