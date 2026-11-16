@@ -58,3 +58,19 @@ test("doc never contains the forbidden mention string", () => {
   assert.ok(!doc.includes("@" + "codex"));
   assert.ok(!/https?:\/\//.test(doc));
 });
+
+// FORM-RESUME-2 (2026-11-16): the list showed 0 exact-name forms and 2 "無題のフォーム", so read stopped.
+// The list's file name and the form's inner title can differ; read may open untitled forms read-only to compare
+// the inner title AND description, and must stop unless exactly one matches (Amu FORM-RESUME-NAME-20261116).
+test("read stage can identify the target among untitled forms by inner title and description, read-only", () => {
+  const read = section("### stage=read", "### stage=questions");
+  assert.ok(read.includes("一覧の名前と、フォームの中の題名は、別のことがある"));
+  assert.ok(read.includes("中の題名") && read.includes("説明"));
+  assert.ok(read.includes("入力・保存・共有・削除はしない"));
+  assert.ok(read.includes("時刻だけで決めない"));
+  assert.ok(read.includes("ちょうど1件"));
+  assert.ok(read.includes("もう1件") || read.includes("ほかの候補"));
+  const q = section("### stage=questions", "### stage=settings");
+  assert.ok(q.includes("stage=read と同じ決め方"));
+  assert.ok(doc.includes("説明: <対象のフォームの説明の原文>"));
+});
