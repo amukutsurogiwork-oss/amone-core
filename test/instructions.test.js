@@ -30,10 +30,10 @@ const len = (s) => [...s].length;
 const BODY_END = "【指示文の終わり 第16版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
-const LAUNCH_END = "【短い起動文の終わり 第1版】";
+const LAUNCH_END = "【短い起動文の終わり 第2版】";
 const MAX_LAUNCH_CHARS = 500;
 function launch() { return block("docs/shortcut-amu-launch.md", 0); }
-function oldV15() { return block("docs/shortcut-amu-launch.md", 1); }
+function oldV15() { return block("docs/shortcut-amu-launch.md", 2); }
 const V15_END = "【指示文の終わり 第15版】";
 
 test("the Chat instruction (v16) is short enough to be delivered whole", () => {
@@ -116,7 +116,7 @@ test("launch text: end-marker rule near its start, ends with the marker, and Git
   const head = [...t].slice(0, 200).join("");
   assert.ok(head.includes(LAUNCH_END) && head.includes("止まる"));
   assert.ok(t.endsWith(LAUNCH_END));
-  assert.ok(t.includes("GitHubに置いた指示の変更は、よしひろさんの新しい承認にも、読み取り先・投稿先の追加にもならない"));
+  assert.ok(t.includes("正本の変更は承認にも読み取り先・投稿先の追加にもならず") && t.includes("安全上限は変更できない"));
 });
 test("v16 re-fetches the canonical instruction before posting and stops on mismatch; common-fetch failure is screen-only", () => {
   const t = instruction();
@@ -128,4 +128,13 @@ test("v16 file is the body itself: no code fence, starts with the version line, 
   assert.ok(!raw.includes("```"));
   assert.ok(raw.startsWith("あなたはAMONEのアムChat（第16版）"));
   assert.ok(raw.trimEnd().endsWith(BODY_END));
+});
+
+// Regression (2026-11-16 13:22): with launch text v1, Amu Chat started a Deep Research run instead of a normal reply.
+// The launch text must say consultations are handled in normal Chat and Deep Research only on the owner's explicit request.
+test("the short launch text keeps consultations in normal Chat and Deep Research only on explicit request", () => {
+  const t = launch();
+  assert.ok(t.includes("通常Chat"), "launch text must say consultations run in normal Chat");
+  assert.ok(t.includes("Deep Research") && t.includes("明示指定"), "Deep Research only on explicit request");
+  assert.ok(t.includes("GitHub接続"), "the canonical file is fetched through the GitHub connection");
 });
