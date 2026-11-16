@@ -29,3 +29,8 @@ test("missing deadline, missing mark, bad first line, or a literal codex mention
   assert.match(checkRequest("hello\n" + req("2026-11-18 00:00"), at("2026-11-16 23:08")), /先頭行/);
   assert.match(checkRequest(req("2026-11-18 00:00", "@" + "codex"), at("2026-11-16 23:08")), /codex/);
 });
+
+// Codex review on PR #67: the documented cancel format has no lane/op and must pass.
+test("the documented cancellation format passes", () => {
+  assert.equal(checkRequest("[MONE-REQUEST] id=X1 status=cancel\n", at("2026-11-16 23:08")), null);
+});

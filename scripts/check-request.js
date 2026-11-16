@@ -13,9 +13,9 @@ const LIMIT_MS = 3 * 24 * 60 * 60 * 1000;
 function checkRequest(text, now = new Date()) {
   const s = String(text).replace(/^﻿/, "");
   const first = s.split(/\r?\n/)[0].trim();
-  if (!/^\[MONE-REQUEST\] id=\S+ lane=work op=\S+/.test(first)) return "先頭行が [MONE-REQUEST] id=… lane=work op=… ではありません";
   if (/@codex/i.test(s)) return "半角の「@codex」が含まれています";
-  if (/status=cancel/.test(first)) return null;
+  if (/^\[MONE-REQUEST\] id=\S+ status=cancel\s*$/.test(first)) return null;
+  if (!/^\[MONE-REQUEST\] id=\S+ lane=work op=\S+/.test(first)) return "先頭行が [MONE-REQUEST] id=… lane=work op=… ではありません";
   if (!s.includes("⟦AMONE-WORK⟧")) return "⟦AMONE-WORK⟧ の印がありません";
   const m = s.match(/^期限:\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/m);
   if (!m) return "期限: YYYY-MM-DD HH:MM (日本時間) がありません";
