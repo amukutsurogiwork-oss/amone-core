@@ -39,3 +39,14 @@ test("window excludes old comments and shows date", () => {
   assert.match(buildReport(old, now, 48), /依頼の数: 0/);
   assert.match(buildReport(old, now, 24 * 10), /11\/10 10:00/);
 });
+
+// A stop notice names the request comment (comment=<id>), not request=<ID> (FORM-RESUME-1).
+test("stop notice matched by comment id counts as intake", () => {
+  const { buildReport } = require("../scripts/work-report");
+  const now = new Date("2026-11-17T12:00:00Z");
+  const c = [
+    { id: 55, user: { login: "x" }, created_at: "2026-11-17T10:00:00Z", body: "[MONE-REQUEST] id=S1 lane=work op=read sha=a" },
+    { id: 56, user: { login: "github-actions[bot]" }, created_at: "2026-11-17T10:00:20Z", body: "[AMONE-STOPPED] reason=x comment=55" },
+  ];
+  assert.ok(!/受付 なし/.test(buildReport(c, now, 48)));
+});
