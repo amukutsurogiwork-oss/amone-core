@@ -33,9 +33,32 @@ function parseFields(line) {
   return out;
 }
 
+// One page is 100 comments; the proxy cannot paginate, so a full page means "maybe more" -> stop.
+const FULL_PAGE = 100;
+const fullPage = (comments) => Array.isArray(comments) && comments.length >= FULL_PAGE;
+const FULL_REASON = "コメントが100件以上あり、全部を読めていないので止めます(投稿していません)";
+
 function planAsk(text, comments, now = new Date()) {
   const err = checkAsk(text);
   if (err) return { ok: false, reason: err };
+  if (fullPage(comments)) return { ok: false, reason: FULL_REASON };
+  // Amu ignores a second initial ask for the same id and a second reply for the same round.
+  const head = firstLine(text);
+  const tag = (head.match(/^\[(MONE-[A-Z]+)\]/) || [])[1];
+  const f = parseFields(head);
+  if (tag === "MONE-ASK" || tag === "MONE-REPLY") {
+    const cancel = f.status === "cancel";
+    for (const c of comments || []) {
+      if (typeof c.body !== "string") continue;
+      const ch = firstLine(c.body);
+      const ctag = (ch.match(/^\[(MONE-[A-Z]+)\]/) || [])[1];
+      const cf = parseFields(ch);
+      if (ctag !== tag || cf.id !== f.id) continue;
+      if ((cf.status === "cancel") !== cancel) continue;
+      if (tag === "MONE-REPLY" && cf.round !== f.round) continue;
+      return { ok: false, reason: `id=${f.id} の同じ相談(または同じ回の返事)が、すでに投稿されています(二重投稿)` };
+    }
+  }
   const w = wakeAllowed(comments, now);
   return { ok: true, wake: w.ok ? { ok: true } : { ok: false, waitSeconds: w.waitSeconds } };
 }
@@ -43,6 +66,7 @@ function planAsk(text, comments, now = new Date()) {
 function planRequest(text, prHeadSha, comments, now = new Date()) {
   const err = checkRequest(text, now);
   if (err) return { ok: false, reason: err };
+  if (fullPage(comments)) return { ok: false, reason: FULL_REASON };
   const first = firstLine(text);
   const f = parseFields(first);
   const cancel = f.status === "cancel";

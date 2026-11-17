@@ -53,3 +53,22 @@ test("request ok", () => {
   const r = planRequest(req("2026-11-18 12:00"), SHA, [{ body: "[MONE-REQUEST] id=OTHER lane=work op=review sha=x" }], NOW);
   assert.strictEqual(r.ok, true);
 });
+
+// Codex review on PR #76: duplicate consult headers must be rejected (Amu ignores duplicates),
+// while follow-up rounds and cancels stay allowed.
+test("ask NG on duplicate initial ask or duplicate reply round; follow-ups allowed", () => {
+  const prev = [{ body: "[MONE-ASK] id=T1 lane=chat op=design round=1 status=open\nx", created_at: iso(-600000) }];
+  assert.strictEqual(planAsk(ASK, prev, NOW).ok, false);
+  assert.match(planAsk(ASK, prev, NOW).reason, /二重/);
+  const r2 = "[MONE-REPLY] id=T1 round=2\nx";
+  assert.strictEqual(planAsk(r2, prev, NOW).ok, true);
+  assert.strictEqual(planAsk(r2, [...prev, { body: r2, created_at: iso(-60000) }], NOW).ok, false);
+  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n", prev, NOW).ok, true);
+});
+
+// Codex review on PR #76: a full page (100 comments) may hide later comments; stop instead of guessing.
+test("checks stop when the comment page is full", () => {
+  const full = Array.from({ length: 100 }, (_, i) => ({ body: "x", created_at: iso(-i * 1000) }));
+  assert.match(planAsk(ASK, full, NOW).reason, /100件/);
+  assert.match(planRequest(req("2026-11-18 12:00"), SHA, full, NOW).reason, /100件/);
+});
