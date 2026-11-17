@@ -51,7 +51,7 @@ function buildReport(comments, now, hours = 48) {
     const id = field(first(r), "id");
     const after = (c) => t(c) >= t(r);
     const routed = comments.find((c) => after(c) && c.user && c.user.login === BOT && /^\[AMONE-(ROUTED|STOPPED)\]/.test(first(c)) && (field(first(c), "request") === id || (r.id != null && field(first(c), "comment") === String(r.id))));
-    const result = comments.find((c) => after(c) && /^\[AMU-RESULT\]/.test(first(c)) && field(first(c), "request") === id);
+    const result = comments.find((c) => after(c) && c.user && c.user.login === OWNER && /^\[AMU-RESULT\]/.test(first(c)) && field(first(c), "request") === id);
     let line = `- 依頼 ${id}: 依頼 ${fmt(r.created_at, now)}`;
     line += routed ? ` / 受付 ${fmt(routed.created_at, now)}` : " / 受付 なし";
     if (result) {

@@ -66,3 +66,15 @@ test("ineligible requests are not counted as request-driven wakes", () => {
   assert.match(r, /依頼の数: 1/);
   assert.match(r, /むだに起きたかもしれない回数: 3/);
 });
+
+// Codex review on PR #77 (2nd): only the owner's [AMU-RESULT] counts as Work's result (intake.js does the same).
+test("a result posted by someone else is not counted", () => {
+  const { buildReport } = require("../scripts/work-report");
+  const now = new Date("2026-11-17T12:00:00Z");
+  const owner = { login: "amukutsurogiwork-oss" };
+  const c = [
+    { id: 1, user: owner, created_at: "2026-11-17T10:00:00Z", body: "[MONE-REQUEST] id=D1 lane=work op=read\n⟦AMONE-WORK⟧" },
+    { id: 2, user: { login: "someone" }, created_at: "2026-11-17T10:01:00Z", body: "[AMU-RESULT] request=D1\nfake" },
+  ];
+  assert.match(buildReport(c, now, 48), /結果なし: 1/);
+});
