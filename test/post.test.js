@@ -66,9 +66,11 @@ test("ask NG on duplicate initial ask or duplicate reply round; follow-ups allow
   assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n", prev, NOW).ok, true);
 });
 
-// Codex review on PR #76: a full page (100 comments) may hide later comments; stop instead of guessing.
-test("checks stop when the comment page is full", () => {
-  const full = Array.from({ length: 100 }, (_, i) => ({ body: "x", created_at: iso(-i * 1000) }));
-  assert.match(planAsk(ASK, full, NOW).reason, /100件/);
-  assert.match(planRequest(req("2026-11-18 12:00"), SHA, full, NOW).reason, /100件/);
+// Codex review on PR #76 (2nd): duplicates must be checked against the whole history, not only the recent window.
+test("fetchAll reads every page (page by page) and stops if there are too many pages", () => {
+  const { fetchAll } = require("../scripts/post");
+  const pages = { 1: Array(100).fill({ body: "a" }), 2: Array(100).fill({ body: "b" }), 3: [{ body: "[MONE-ASK] id=OLD round=1" }] };
+  const runner = (args) => JSON.stringify(pages[Number(/[?&]page=(\d+)/.exec(args[1])[1])] || []);
+  assert.strictEqual(fetchAll(23, runner).length, 201);
+  assert.throws(() => fetchAll(23, () => JSON.stringify(Array(100).fill({ body: "x" }))), /多すぎ/);
 });

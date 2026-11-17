@@ -12,8 +12,6 @@ const { wakeAllowed } = require("./check-wake-gap");
 const REPO = "amukutsurogiwork-oss/ai-collab-sandbox";
 const ASK_PR = 23;
 const REQUEST_PR = 25;
-const ASK_WINDOW_MS = 12 * 60 * 60 * 1000;
-const REQUEST_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 // The only place that talks to gh. Tests replace it.
 function run(args) {
@@ -33,15 +31,11 @@ function parseFields(line) {
   return out;
 }
 
-// One page is 100 comments; the proxy cannot paginate, so a full page means "maybe more" -> stop.
-const FULL_PAGE = 100;
-const fullPage = (comments) => Array.isArray(comments) && comments.length >= FULL_PAGE;
-const FULL_REASON = "コメントが100件以上あり、全部を読めていないので止めます(投稿していません)";
+const MAX_PAGES = 50;
 
 function planAsk(text, comments, now = new Date()) {
   const err = checkAsk(text);
   if (err) return { ok: false, reason: err };
-  if (fullPage(comments)) return { ok: false, reason: FULL_REASON };
   // Amu ignores a second initial ask for the same id and a second reply for the same round.
   const head = firstLine(text);
   const tag = (head.match(/^\[(MONE-[A-Z]+)\]/) || [])[1];
@@ -66,7 +60,6 @@ function planAsk(text, comments, now = new Date()) {
 function planRequest(text, prHeadSha, comments, now = new Date()) {
   const err = checkRequest(text, now);
   if (err) return { ok: false, reason: err };
-  if (fullPage(comments)) return { ok: false, reason: FULL_REASON };
   const first = firstLine(text);
   const f = parseFields(first);
   const cancel = f.status === "cancel";
@@ -87,10 +80,15 @@ function planRequest(text, prHeadSha, comments, now = new Date()) {
   return { ok: true };
 }
 
-function fetchComments(pr, sinceMs, now) {
-  const since = new Date(now.getTime() - sinceMs).toISOString();
-  const out = run(["api", `repos/${REPO}/issues/${pr}/comments?per_page=100&since=${since}`]);
-  return JSON.parse(out.replace(/\]\s*\[/g, ","));
+// Reads the whole history page by page (the proxy cannot use --paginate). Too many pages -> stop.
+function fetchAll(pr, runner = run) {
+  const all = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const batch = JSON.parse(runner(["api", `repos/${REPO}/issues/${pr}/comments?per_page=100&page=${page}`]));
+    all.push(...batch);
+    if (batch.length < 100) return all;
+  }
+  throw new Error("コメントが多すぎて、全部を読み切れません");
 }
 
 function postFile(pr, file) {
@@ -115,13 +113,13 @@ function main(argv, now = new Date()) {
       pr = ASK_PR;
       const early = checkAsk(text);
       if (early) return ng(early);
-      plan = planAsk(text, fetchComments(pr, ASK_WINDOW_MS, now), now);
+      plan = planAsk(text, fetchAll(pr), now);
     } else {
       pr = REQUEST_PR;
       const early = checkRequest(text, now);
       if (early) return ng(early);
       const head = run(["api", `repos/${REPO}/pulls/${pr}`, "--jq", ".head.sha"]).trim();
-      plan = planRequest(text, head, fetchComments(pr, REQUEST_WINDOW_MS, now), now);
+      plan = planRequest(text, head, fetchAll(pr), now);
     }
   } catch (e) {
     return ng("GitHub から情報を取れませんでした(投稿していません)");
@@ -141,4 +139,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { planAsk, planRequest, run, main };
+module.exports = { planAsk, planRequest, fetchAll, run, main };
