@@ -6,6 +6,7 @@
 const { fetchAll } = require("./post");
 
 const REQUEST_PR = 25;
+const OWNER = "amukutsurogiwork-oss";
 const BOT = "github-actions[bot]";
 
 function first(c) {
@@ -41,7 +42,9 @@ function buildReport(comments, now, hours = 48) {
   const from = now.getTime() - hours * 3600 * 1000;
   const t = (c) => new Date(c.created_at).getTime();
   const inWin = comments.filter((c) => t(c) >= from && t(c) <= now.getTime());
-  const reqs = inWin.filter((c) => /^\[MONE-REQUEST\] id=\S+/.test(first(c)) && field(first(c), "status") !== "cancel");
+  // Same gate as the deployed Work instruction: owner's comment, lane=work, and the mark.
+  const eligible = (c) => c.user && c.user.login === OWNER && field(first(c), "lane") === "work" && String(c.body || "").includes("⟦AMONE-WORK⟧");
+  const reqs = inWin.filter((c) => /^\[MONE-REQUEST\] id=\S+/.test(first(c)) && field(first(c), "status") !== "cancel" && eligible(c));
   const out = [`Work 起動の報告 (直近 ${hours} 時間)`];
   const mins = [];
   for (const r of reqs) {
