@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const { collectIdeas, formatIdeas, readIdeas, parseArgs } = require("../scripts/daily-ideas");
 
 const ask = (d) => ({ body: `[MONE-ASK] id=DAILY-IDEA-${d} lane=chat op=design round=1 status=open\n案を出してください`, created_at: "x" });
-const ans = (d, text, extra = "") => ({ body: `[AMU-ANSWER] request=DAILY-IDEA-${d} round=1 source=1${extra}\n${text}`, created_at: "x" });
+const ans = (d, text, extra = "", round = 1) => ({ body: `[AMU-ANSWER] request=DAILY-IDEA-${d} round=${round} source=1${extra}\n${text}`, created_at: "x" });
 const NOW = new Date("2026-11-20T00:00:00Z");
 
 test("collects asks and answers per day, newest day first", () => {
@@ -39,9 +39,20 @@ test("blocked answers and unrelated comments are not ideas", () => {
   assert.deepEqual(days.map((d) => [d.date, d.answered]), [["2026-11-19", false]]);
 });
 
-test("the newest answer of a day wins", () => {
-  const [d] = collectIdeas([ans("20261119", "1. 古い"), ans("20261119", "1. 新しい")], { days: 14, now: NOW });
-  assert.deepEqual(d.headings, ["新しい"]);
+test("a later answer adds new headings to the day; same heading is kept once", () => {
+  const [d] = collectIdeas([ans("20261119", "1. 古い"), ans("20261119", "1. 新しい\n2. 古い", "", 2)], { days: 14, now: NOW });
+  assert.deepEqual(d.headings, ["古い", "新しい"]);
+});
+
+test("a later answer without numbered lines does not erase round 1 headings", () => {
+  const [d] = collectIdeas([ans("20261119", "1. 元の案"), ans("20261119", "補足の説明だけ", "", 2)], { days: 14, now: NOW });
+  assert.deepEqual(d.headings, ["元の案"]);
+  assert.match(formatIdeas([d]), /元の案/);
+});
+
+test("headings are gathered in round order even if comments arrive out of order", () => {
+  const [d] = collectIdeas([ans("20261119", "1. 三番目", "", 3), ans("20261119", "1. 一番目", "", 1), ans("20261119", "1. 二番目", "", 2)], { days: 14, now: NOW });
+  assert.deepEqual(d.headings, ["一番目", "二番目", "三番目"]);
 });
 
 test("readIdeas reads through the fake gh runner and writes nothing", () => {

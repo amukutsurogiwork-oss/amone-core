@@ -59,8 +59,16 @@ function collectIdeas(comments, { days = 14, now = new Date() } = {}) {
       if (!date || date < limit || f.status === "blocked") continue;
       const d = get(date);
       d.answered = true;
-      d.headings = headingsOf(c.body); // the later comment replaces the earlier one
+      (d.rounds = d.rounds || []).push({ round: Number(f.round) || 0, order: d.rounds.length, list: headingsOf(c.body) });
     }
+  }
+  // Gather headings from every answer of the day in round order; the same heading counts once.
+  for (const d of byDate.values()) {
+    const seen = new Set();
+    for (const r of (d.rounds || []).sort((a, b) => a.round - b.round || a.order - b.order)) {
+      for (const h of r.list) if (!seen.has(h)) { seen.add(h); d.headings.push(h); }
+    }
+    delete d.rounds;
   }
   return [...byDate.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
 }
