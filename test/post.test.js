@@ -90,3 +90,9 @@ test("request is refused the same way when its thread has 200 comments", () => {
   assert.strictEqual(r.ok, false);
   assert.match(r.reason, /引っ越/);
 });
+// Codex P2 on #85: a full thread must still accept cancellations, or a pending request stays actionable.
+test("cancellations are still allowed when the thread has 200 comments", () => {
+  const many = Array.from({ length: 200 }, () => ({ body: "x" }));
+  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", many, NOW).ok, true);
+  assert.strictEqual(planRequest("[MONE-REQUEST] id=R1 status=cancel\n取消\n", SHA, many, NOW).ok, true);
+});

@@ -35,14 +35,16 @@ const MAX_PAGES = 50;
 // Amu reads every comment of the thread before answering; at 360 comments (PR #23, 2026-11-22) she could not.
 // Stop well before that and move to a new thread.
 const MAX_THREAD_COMMENTS = 200;
-function threadFull(comments) {
+// A cancellation is always allowed: refusing it would leave the original ask or request actionable.
+function threadFull(comments, text) {
+  if (parseFields(firstLine(text)).status === "cancel") return null;
   return (comments || []).length >= MAX_THREAD_COMMENTS
     ? `スレッドのコメントが ${MAX_THREAD_COMMENTS} 件に達しました。アムが全部を読み切れなくなるので、投稿せずに止まります。新しいスレッドへ引っ越してください`
     : null;
 }
 
 function planAsk(text, comments, now = new Date()) {
-  const err = checkAsk(text) || threadFull(comments);
+  const err = checkAsk(text) || threadFull(comments, text);
   if (err) return { ok: false, reason: err };
   // Amu ignores a second initial ask for the same id and a second reply for the same round.
   const head = firstLine(text);
@@ -66,7 +68,7 @@ function planAsk(text, comments, now = new Date()) {
 }
 
 function planRequest(text, prHeadSha, comments, now = new Date()) {
-  const err = checkRequest(text, now) || threadFull(comments);
+  const err = checkRequest(text, now) || threadFull(comments, text);
   if (err) return { ok: false, reason: err };
   const first = firstLine(text);
   const f = parseFields(first);
