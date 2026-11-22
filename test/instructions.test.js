@@ -181,3 +181,16 @@ test("a part-file check failure is reported once as blocked, with the reason cla
     assert.ok(t.includes(w), `instruction must say: ${w}`);
   }
 });
+
+// Work scheduled-task instruction W2 (proposal): short and ends with its marker; the pasted block must tell Work to stop when the marker is missing.
+test("the Work instruction W2 is short, ends with its marker, and fails closed when cut", () => {
+  const doc = fs.readFileSync(path.join(root, "docs/deployed/work-task-instructions-w2.md"), "utf8");
+  const a = doc.indexOf("```") + 3;
+  const b = doc.indexOf("```", a);
+  assert.ok(a > 2 && b > a);
+  const t = doc.slice(a, b).trim();
+  assert.ok([...t].length <= MAX_INSTRUCTION_CHARS, `W2 is ${[...t].length} chars`);
+  assert.ok(t.endsWith("【Work指示文の終わり W2】"));
+  const head = t.slice(0, 200);
+  assert.ok(head.includes("【Work指示文の終わり W2】") && head.includes("見えないとき") && head.includes("終了"));
+});
