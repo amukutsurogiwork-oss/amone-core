@@ -172,3 +172,12 @@ test("the instruction reads long consultations only from the numbered part files
   assert.strictEqual(MAX_PARTS, 6);
   assert.strictEqual(MAX_PART_CHARS, 4500);
 });
+
+// TRIAL2-20261122 (Amu): a part-file check failure was reported only on the screen, so Mone never learned of it.
+// v19 now posts one blocked report with the reason class only, under strict conditions; nothing else is relaxed.
+test("a part-file check failure is reported once as blocked, with the reason class only, under strict conditions", () => {
+  const t = instruction();
+  for (const w of ["相談ファイルの照合失敗だけは例外", "理由分類", "ファイル本文・秘密は引用しない", "head_sha", "取消・既回答・blockedなし", "投稿直前の全再照合", "共通必須情報の取得失敗・元コメント不明なら投稿しない"]) {
+    assert.ok(t.includes(w), `instruction must say: ${w}`);
+  }
+});

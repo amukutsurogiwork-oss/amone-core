@@ -75,3 +75,14 @@ test("a long ask is checked before pushing: bad header, duplicate, budget, and a
   const answered = pendingLong.concat([{ body: "[AMU-ANSWER] request=L0 round=1 source=1\nok" }]);
   assert.strictEqual(planLong(ok, answered, NOW).ok, true);
 });
+
+// TRIAL2-20261122 (Amu): Mone reads back what was pushed and checks the head before posting the marker.
+test("read-back check: every file must come back exactly, and the thread head must be the pushed commit", () => {
+  const { verifyPushed } = require("../scripts/post-long");
+  const files = [{ path: "consult/A/r1/part-1.md", content: "x" }, { path: "consult/A/r1/part-2.md", content: "y" }];
+  const sha = "a".repeat(40);
+  assert.strictEqual(verifyPushed(files, { "consult/A/r1/part-1.md": "x", "consult/A/r1/part-2.md": "y" }, sha, sha).ok, true);
+  assert.match(verifyPushed(files, { "consult/A/r1/part-1.md": "x" }, sha, sha).reason, /part-2/);
+  assert.match(verifyPushed(files, { "consult/A/r1/part-1.md": "x", "consult/A/r1/part-2.md": "z" }, sha, sha).reason, /part-2/);
+  assert.match(verifyPushed(files, { "consult/A/r1/part-1.md": "x", "consult/A/r1/part-2.md": "y" }, sha, "b".repeat(40)).reason, /head/);
+});
