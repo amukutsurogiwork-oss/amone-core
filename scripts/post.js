@@ -46,19 +46,24 @@ const MAX_THREAD_CHARS = 4500;
 const chars = (s) => [...String(s || "")].length;
 // Each ask/reply waits for one answer of up to 800 characters (instruction v18); keep room for every answer still to come.
 const ANSWER_RESERVE = 800;
-function pendingAnswers(comments) {
-  const want = new Set(), cancelled = new Set();
+// "id:round" of every ask/reply that still waits for Amu's answer (cancelled ids excluded).
+function pendingKeys(comments) {
+  const want = new Map(), cancelled = new Set();
   for (const c of comments || []) {
     const head = firstLine(c.body || ""), f = parseFields(head);
     if (head.startsWith("[MONE-ASK]") && f.status === "cancel") cancelled.add(f.id);
-    else if (head.startsWith("[MONE-ASK]")) want.add(`${f.id}:1`);
-    else if (head.startsWith("[MONE-REPLY]")) want.add(`${f.id}:${f.round}`);
+    else if (head.startsWith("[MONE-ASK]")) want.set(`${f.id}:1`, c.body);
+    else if (head.startsWith("[MONE-REPLY]")) want.set(`${f.id}:${f.round}`, c.body);
   }
   for (const c of comments || []) {
     const head = firstLine(c.body || ""), f = parseFields(head);
     if (head.startsWith("[AMU-ANSWER]")) want.delete(`${f.request}:${f.round}`);
   }
-  return [...want].filter((k) => !cancelled.has(k.split(":")[0])).length;
+  for (const k of [...want.keys()]) if (cancelled.has(k.split(":")[0])) want.delete(k);
+  return want; // key -> body of the waiting post
+}
+function pendingAnswers(comments) {
+  return pendingKeys(comments).size;
 }
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
@@ -182,4 +187,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { askPr, planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, pendingKeys, planAsk, planRequest, fetchAll, run, main };

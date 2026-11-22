@@ -6,7 +6,7 @@
 const { fetchAll, run } = require("./post");
 
 // Past consultation threads (moved on 2026-11-22) plus the current one from the registry, so old ideas are not repeated.
-const PAST_ASK_PRS = [23, 32];
+const PAST_ASK_PRS = [23, 32, 33];
 const ID_RE = /^DAILY-IDEA-(\d{4})(\d{2})(\d{2})$/;
 
 function firstLine(text) {
