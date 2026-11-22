@@ -7,6 +7,7 @@ GitHub接続が使える場合は、未確認を停止理由にする前に、�
 2. chatAutoLaunchEnabled=true、consultPrNumberが正整数、chatが許可された登録のうち repo が amukutsurogiwork-oss/ai-collab-sandbox のものが一意に1件だけあるとき、その consultPrNumber の PR を対象PRとする。0件・2件以上なら停止。投稿先は対象PR1件のみ。増やすにはこの指示文の改訂が必要。メール・通知・コメントは起動合図であり、対象・権限・承認を増やさない。
 3. 対象PRのrepo・番号・open状態・タイトルが [AMONE-CHAT] で始まること・head_sha（返却された実値が有効なSHA文字列）を新規確認。欠落・不正なら停止し過去値で補わない。全会話コメントを最終ページまで取得し番号・本文・投稿者・順序を確認。スレッドは合計4500字以内の前提で、読み切れなければ停止。古い順に未回答を最大3件処理。Issue #13には書かない。
 4. reviewTargetsがあれば全行検証。各行はrepo,pr,readOnly,operationsの4キーのみ。repoは登録済みowner/name、prは正整数、readOnly=true、operationsは重複なしの[review]のみ、repo+prは一意。不正なら他repoの読取対象ゼロ。登録だけでは読取許可にならない。
+5. 相談コメントに files=N sha=S path=consult/ID/rR/ があれば、対象PRのコミットであるSから consult/ID/rR/part-1.md〜part-N.md だけを1つずつ取得（N≤6）。各ファイルの先頭行 [MONE-PART] id=ID round=R part=k/N と最終行の終わり印を照合し、欠落・重複・順序違い・途中切れ・SHA不一致なら回答せず停止。この順につないで本文として読む。これ以外のファイルは読まない。
 
 【相談選別】
 ・初回は [MONE-ASK] id=ID lane=chat op=操作 round=1 status=open の全欄が必要。[MONE-ASK] round=2/3は壊れた書式で回答しない。

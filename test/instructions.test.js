@@ -158,3 +158,14 @@ test("the registry's consultation PR matches the instruction and the post script
   assert.strictEqual(nums.length, 1);
   assert.strictEqual(require("../scripts/post").askPr(), Number(nums[0].match(/(\d+)$/)[1]));
 });
+
+// SLOTS-20261122 (Amu's design): long consultations are read from numbered files at a named commit, with strict checks.
+test("the instruction reads long consultations only from the numbered part files, and stops on any gap", () => {
+  const t = instruction();
+  for (const w of ["files=N sha=S", "consult/ID/rR/part-1.md", "N≤6", "[MONE-PART] id=ID round=R part=k/N", "終わり印", "欠落・重複・順序違い・途中切れ・SHA不一致なら回答せず停止", "これ以外のファイルは読まない"]) {
+    assert.ok(t.includes(w), `instruction must say: ${w}`);
+  }
+  const { MAX_PARTS, MAX_PART_CHARS } = require("../scripts/post-long");
+  assert.strictEqual(MAX_PARTS, 6);
+  assert.strictEqual(MAX_PART_CHARS, 4500);
+});
