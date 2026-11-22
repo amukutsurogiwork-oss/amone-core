@@ -21,7 +21,7 @@ test("ask ok, wake wait after a recent AMU post", () => {
   const r = planAsk(ASK, [{ body: "[AMU-REPLY] x", created_at: iso(-30000) }], NOW);
   assert.strictEqual(r.ok, true);
   assert.strictEqual(r.wake.ok, false);
-  assert.strictEqual(r.wake.waitSeconds, 90);
+  assert.strictEqual(r.wake.waitSeconds, 270);
 });
 
 test("ask NG on bad header", () => {

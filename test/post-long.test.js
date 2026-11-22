@@ -42,3 +42,9 @@ test("files live at a fixed path and the comment names the count and the commit"
   assert.match(c, /files=3 sha=abc1234def path=consult\/ID1\/r1\//);
   assert.ok(len(c) <= 800);
 });
+// SLOTS-20261122 round 2 (Amu): the path is built from the ask's ID and round, so the ID must use only safe characters.
+test("the consultation ID must use only letters, digits and hyphens", () => {
+  assert.throws(() => splitParts("../x", 1, "a"), /ID/);
+  assert.throws(() => splitParts("a/b", 1, "a"), /ID/);
+  assert.ok(splitParts("BOOTH-D1B-20261122", 1, "a").length === 1);
+});

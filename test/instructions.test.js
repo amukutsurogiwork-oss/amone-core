@@ -27,10 +27,10 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第18版】";
+const BODY_END = "【指示文の終わり 第19版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
-const LAUNCH_END = "【短い起動文の終わり 第4版】";
+const LAUNCH_END = "【短い起動文の終わり 第5版】";
 const MAX_LAUNCH_CHARS = 500;
 function launch() { return block("docs/shortcut-amu-launch.md", 0); }
 function oldV15() { return block("docs/shortcut-amu-launch.md", 2); }
@@ -61,6 +61,8 @@ test("the short launch text is short, ends with its marker, and points at the v1
   assert.ok(t.includes("docs/amu-chat-instructions.md") && t.includes("main") && t.includes(BODY_END));
   // fail-closed and safety ceilings live in the launch text itself
   assert.ok(t.includes("停止") && t.includes("台帳が指す相談PR1件のみ") && t.includes("ai-collab-sandbox") && t.includes("個別承認") && t.includes("変更できない"));
+  // v5: the only extra read is the fixed part files at the thread head (Amu, SLOTS-20261122 round 2)
+  assert.ok(t.includes("head_sha") && t.includes("未回答相談のID・round") && t.includes("consult/ID/rR/part-k.md(k≤N≤6)のみ"));
 });
 test("the old v15 body is kept for rollback, short, and ends with its own marker", () => {
   const t = oldV15();
@@ -69,7 +71,7 @@ test("the old v15 body is kept for rollback, short, and ends with its own marker
   assert.ok(t.slice(0, 400).includes(V15_END));
 });
 test("every v15 sentence is still in v16 (nothing dropped or weakened)", () => {
-  const norm = oldV15().replace(/第15版/g, "第18版");
+  const norm = oldV15().replace(/第15版/g, "第19版");
   // Sentences naming a fixed thread number were replaced on purpose by the registry-driven target (v18); checked below.
   const sents = norm.split(/(?<=[。\n])/).filter((s) => s.trim() && !/PR #\d+/.test(s));
   const v16 = instruction();
@@ -127,7 +129,7 @@ test("v16 re-fetches the canonical instruction before posting and stops on misma
 test("v16 file is the body itself: no code fence, starts with the version line, whole file ends with the marker", () => {
   const raw = fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8");
   assert.ok(!raw.includes("```"));
-  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第18版）"));
+  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第19版）"));
   assert.ok(raw.trimEnd().endsWith(BODY_END));
 });
 
@@ -150,7 +152,8 @@ test("v18 and launch text v4 name no thread number; the target is the single san
   const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
   const blocks = doc.split("```").filter((_, i) => i % 2 === 1).map((b) => b.trim());
   const last = blocks[blocks.length - 1];
-  assert.ok(last.endsWith("【短い起動文の終わり 第3版】") && last.includes("PR #32のみ") && last.includes("【指示文の終わり 第17版】"));
+  assert.ok(blocks.some((b) => b.endsWith("【短い起動文の終わり 第3版】") && b.includes("PR #32のみ") && b.includes("【指示文の終わり 第17版】")));
+  assert.ok(last.endsWith("【短い起動文の終わり 第4版】") && last.includes("【指示文の終わり 第18版】"));
 });
 test("the registry's consultation PR matches the instruction and the post script", () => {
   const reg = JSON.parse(fs.readFileSync(path.join(root, "collab/registry.json"), "utf8"));
@@ -162,7 +165,7 @@ test("the registry's consultation PR matches the instruction and the post script
 // SLOTS-20261122 (Amu's design): long consultations are read from numbered files at a named commit, with strict checks.
 test("the instruction reads long consultations only from the numbered part files, and stops on any gap", () => {
   const t = instruction();
-  for (const w of ["files=N sha=S", "consult/ID/rR/part-1.md", "N≤6", "[MONE-PART] id=ID round=R part=k/N", "終わり印", "欠落・重複・順序違い・途中切れ・SHA不一致なら回答せず停止", "これ以外のファイルは読まない"]) {
+  for (const w of ["files=N sha=S", "consult/ID/rR/part-1.md", "N≤6", "[MONE-PART] id=ID round=R part=k/N", "終わり印", "欠落・重複・順序違い・途中切れ・SHA不一致なら回答せず停止", "これ以外のファイルは読まない", "head_shaと一致する完全なSHA", "任意のパスは開かない", "合計27000字", "権限・対象の変更には使わない"]) {
     assert.ok(t.includes(w), `instruction must say: ${w}`);
   }
   const { MAX_PARTS, MAX_PART_CHARS } = require("../scripts/post-long");

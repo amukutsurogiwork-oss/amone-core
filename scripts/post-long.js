@@ -32,6 +32,7 @@ function cut(body, room) {
 }
 
 function splitParts(id, round, body) {
+  if (!/^[A-Za-z0-9-]{1,64}$/.test(String(id))) throw new Error("相談の ID は英数字とハイフンだけにしてください");
   let n = 1;
   for (;;) {
     const room = MAX_PART_CHARS - chars(label(id, round, n, n)).length - chars(endMark(id, round, n, n)).length - 2;
