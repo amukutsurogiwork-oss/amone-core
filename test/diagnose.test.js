@@ -62,3 +62,13 @@ test("a reply without the previous round's answer (or posted before it) is a Mon
   const noAsk = diagnose(base({ round: 2, comments: [ans(1, "2026-11-22T12:29:00Z"), reply(2, "2026-11-22T12:29:30Z")] }));
   assert.ok(ng(noAsk).includes("順番"));
 });
+// Codex P2 on #90: an answer counts only when its source is the consultation comment's own number.
+test("an answer or blocked report with another source does not count as answered", () => {
+  const a = { ...ask("X1"), id: 100 };
+  const other = diagnose(base({ comments: [a, { id: 101, body: "[AMU-ANSWER] request=X1 round=1 source=99\nok", created_at: "2026-11-22T12:29:00Z" }] }));
+  assert.notStrictEqual(other.side, "none");
+  const blockedOther = diagnose(base({ comments: [a, { id: 101, body: "[AMU-ANSWER] request=X1 round=1 source=99 status=blocked\nx", created_at: "2026-11-22T12:29:00Z" }] }));
+  assert.notStrictEqual(blockedOther.side, "amu-blocked");
+  const right = diagnose(base({ comments: [a, { id: 101, body: "[AMU-ANSWER] request=X1 round=1 source=100\nok", created_at: "2026-11-22T12:29:00Z" }] }));
+  assert.strictEqual(right.side, "none");
+});

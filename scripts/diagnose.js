@@ -19,7 +19,11 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
     const h = first(c.body), f = fields(h);
     return f.id === id && ((round === 1 && h.startsWith("[MONE-ASK]") && f.status !== "cancel") || (h.startsWith("[MONE-REPLY]") && Number(f.round) === round));
   });
-  const answers = cs.filter((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round; });
+  // an answer counts only when its source is this consultation comment's own number (ID, round and source must all match)
+  const answers = mine ? cs.filter((c) => {
+    const h = first(c.body), f = fields(h);
+    return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round && (mine.id === undefined || String(f.source) === String(mine.id));
+  }) : [];
   if (answers.some((c) => fields(first(c.body)).status !== "blocked")) return { side: "none", checks: [], action: "返事は来ています。直すことはありません" };
   if (answers.length) return { side: "amu-blocked", checks: [], action: "アムが止まった報告 (blocked) を書いています。理由の分類を読んで、モネの側で直せるものを直します" };
 
