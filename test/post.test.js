@@ -100,7 +100,7 @@ test("cancellations are still allowed when the thread has 200 comments", () => {
 // 2026-11-22: Amu stopped on PR #32 with only 5 comments (about 8,500 characters); 3 comments (about 4,600) worked.
 // Amu reads about 5,000 characters at once, so the whole thread is kept within 90% of that: 4,500 characters.
 test("ask is refused when the thread plus the new post would exceed 4,500 characters", () => {
-  const prev = [{ body: "あ".repeat(4000) }];
+  const prev = [{ body: "あ".repeat(3500) }];
   const r = planAsk(ASK + "い".repeat(600), prev, NOW);
   assert.strictEqual(r.ok, false);
   assert.match(r.reason, /4500/);
@@ -109,7 +109,7 @@ test("ask is refused when the thread plus the new post would exceed 4,500 charac
 });
 // The budget is for the Chat thread only: the Work request thread (PR #25) is read by Work, whose limit was not measured.
 test("the character budget counts characters (not bytes) and applies to the Chat thread only", () => {
-  assert.strictEqual(planAsk(ASK, [{ body: "漢".repeat(4400) }], NOW).ok, true);
+  assert.strictEqual(planAsk(ASK, [{ body: "漢".repeat(3600) }], NOW).ok, true);
   assert.strictEqual(planRequest(req("2026-11-18 12:00"), SHA, [{ body: "x".repeat(9000) }], NOW).ok, true);
 });
 test("a cancellation is allowed even when the character budget is used up", () => {
@@ -123,4 +123,17 @@ test("the consultation thread comes from the registry (one sandbox entry), so a 
   assert.throws(() => askPr(reg([{ repo: "x/y" }])), /1件だけ/);
   assert.throws(() => askPr(reg([sb(33), sb(34)])), /1件だけ/);
   assert.throws(() => askPr(reg([sb(0)])), /1件だけ/);
+});
+// Codex P2 on #86: every ask or reply waits for an answer of up to 800 characters, so the budget must keep room for them.
+test("the budget reserves 800 characters for each answer still to come (pending ones and this post's own)", () => {
+  // 3,000 used + 200 new + 800 for this post's answer = 4,000: ok
+  assert.strictEqual(planAsk(ASK + "x".repeat(150), [{ body: "y".repeat(3000) }], NOW).ok, true);
+  // one earlier ask still unanswered: +800 more = 4,800: refused
+  const pending = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(2940) }];
+  const r = planAsk(ASK + "x".repeat(150), pending, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /回答/);
+  // once that ask is answered, its reserve is released
+  const answered = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(2600) }, { body: "[AMU-ANSWER] request=OLD round=1 source=1\nok" }];
+  assert.strictEqual(planAsk(ASK + "x".repeat(150), answered, NOW).ok, true);
 });

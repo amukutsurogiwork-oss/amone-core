@@ -44,11 +44,28 @@ const MAX_THREAD_COMMENTS = 200;
 // the launch text was also cut at exactly 5,000 on 2026-11-15). Keep the whole Chat thread within 90%: 4,500 characters.
 const MAX_THREAD_CHARS = 4500;
 const chars = (s) => [...String(s || "")].length;
+// Each ask/reply waits for one answer of up to 800 characters (instruction v18); keep room for every answer still to come.
+const ANSWER_RESERVE = 800;
+function pendingAnswers(comments) {
+  const want = new Set(), cancelled = new Set();
+  for (const c of comments || []) {
+    const head = firstLine(c.body || ""), f = parseFields(head);
+    if (head.startsWith("[MONE-ASK]") && f.status === "cancel") cancelled.add(f.id);
+    else if (head.startsWith("[MONE-ASK]")) want.add(`${f.id}:1`);
+    else if (head.startsWith("[MONE-REPLY]")) want.add(`${f.id}:${f.round}`);
+  }
+  for (const c of comments || []) {
+    const head = firstLine(c.body || ""), f = parseFields(head);
+    if (head.startsWith("[AMU-ANSWER]")) want.delete(`${f.request}:${f.round}`);
+  }
+  return [...want].filter((k) => !cancelled.has(k.split(":")[0])).length;
+}
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
   const used = (comments || []).reduce((n, c) => n + chars(c.body), 0);
-  return used + chars(text) > MAX_THREAD_CHARS
-    ? `スレッドの文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字)。アムが読み切れなくなるので、投稿せずに止まります。新しいスレッドへ引っ越してください`
+  const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
+  return used + chars(text) + reserve > MAX_THREAD_CHARS
+    ? `スレッドの文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。アムが読み切れなくなるので、投稿せずに止まります。新しいスレッドへ引っ越してください`
     : null;
 }
 // A cancellation is always allowed: refusing it would leave the original ask or request actionable.

@@ -43,7 +43,7 @@ CI・Codex レビュー・本人の承認は、別々に確認する。どれか
 | 受付の設計の詳細 | amone-core `docs/collab-design.md` |
 | アム Chat 起動の指示文 | amone-core `docs/shortcut-amu-launch.md` |
 | モネ ⇄ アムの相談 | ai-collab-sandbox の、台帳 (`collab/registry.json` の `consultPrNumber`) が指す相談用 PR (Merge しない、タイトルは `[AMONE-CHAT]` で始める)。PR #23・#32 と Issue #13 は過去の記録 |
-| 相談スレッドの長さ | アムが一度に読めるのは約5,000字。スレッドの全コメントは合計 **4,500字まで** (9割)。`scripts/post.js` がこえる投稿を止める。アムの回答は800字以内 |
+| 相談スレッドの長さ | アムが一度に読めるのは約5,000字。スレッドの全コメントは合計 **4,500字まで** (9割)。`scripts/post.js` がこえる投稿を止める (これから来る回答の分として、未回答1件ごとと今の投稿に800字ずつ残す)。アムの回答は800字以内 |
 | スレッドの引っ越し | (1) sandbox に新しい相談用 PR を作る (タイトル `[AMONE-CHAT] AMONE 相談スレッドN(モネ⇄アム・Mergeしない)`) (2) 台帳の `consultPrNumber` を変える PR を出し、テスト・Codex のあと Merge (3) 新しいスレッドで相談を出し直す。起動文の貼り替えは要らない |
 | 国永の作業の記録 | yuhi-colorsing-system の Issue/PR (非公開) |
 
