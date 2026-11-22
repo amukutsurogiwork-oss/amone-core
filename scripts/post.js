@@ -10,7 +10,12 @@ const { checkRequest } = require("./check-request");
 const { wakeAllowed } = require("./check-wake-gap");
 
 const REPO = "amukutsurogiwork-oss/ai-collab-sandbox";
-const ASK_PR = 32;
+// The consultation thread is the one the registry names (Amu reads the same registry), so moving threads is one registry change.
+function askPr(registryText = fs.readFileSync(require("node:path").join(__dirname, "../collab/registry.json"), "utf8")) {
+  const hits = (JSON.parse(registryText).projects || []).filter((p) => p && p.repo === REPO && Number.isInteger(p.consultPrNumber) && p.consultPrNumber > 0);
+  if (hits.length !== 1) throw new Error("台帳に sandbox の相談用 PR が1件だけ書かれていません");
+  return hits[0].consultPrNumber;
+}
 const REQUEST_PR = 25;
 
 // The only place that talks to gh. Tests replace it.
@@ -35,6 +40,34 @@ const MAX_PAGES = 50;
 // Amu reads every comment of the thread before answering; at 360 comments (PR #23, 2026-11-22) she could not.
 // Stop well before that and move to a new thread.
 const MAX_THREAD_COMMENTS = 200;
+// Amu reads about 5,000 characters of comments at once (2026-11-22: 3 comments / 4,600 chars worked, 5 / 8,500 did not;
+// the launch text was also cut at exactly 5,000 on 2026-11-15). Keep the whole Chat thread within 90%: 4,500 characters.
+const MAX_THREAD_CHARS = 4500;
+const chars = (s) => [...String(s || "")].length;
+// Each ask/reply waits for one answer of up to 800 characters (instruction v18); keep room for every answer still to come.
+const ANSWER_RESERVE = 800;
+function pendingAnswers(comments) {
+  const want = new Set(), cancelled = new Set();
+  for (const c of comments || []) {
+    const head = firstLine(c.body || ""), f = parseFields(head);
+    if (head.startsWith("[MONE-ASK]") && f.status === "cancel") cancelled.add(f.id);
+    else if (head.startsWith("[MONE-ASK]")) want.add(`${f.id}:1`);
+    else if (head.startsWith("[MONE-REPLY]")) want.add(`${f.id}:${f.round}`);
+  }
+  for (const c of comments || []) {
+    const head = firstLine(c.body || ""), f = parseFields(head);
+    if (head.startsWith("[AMU-ANSWER]")) want.delete(`${f.request}:${f.round}`);
+  }
+  return [...want].filter((k) => !cancelled.has(k.split(":")[0])).length;
+}
+function overBudget(comments, text) {
+  if (parseFields(firstLine(text)).status === "cancel") return null;
+  const used = (comments || []).reduce((n, c) => n + chars(c.body), 0);
+  const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
+  return used + chars(text) + reserve > MAX_THREAD_CHARS
+    ? `スレッドの文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。アムが読み切れなくなるので、投稿せずに止まります。新しいスレッドへ引っ越してください`
+    : null;
+}
 // A cancellation is always allowed: refusing it would leave the original ask or request actionable.
 function threadFull(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
@@ -44,7 +77,7 @@ function threadFull(comments, text) {
 }
 
 function planAsk(text, comments, now = new Date()) {
-  const err = checkAsk(text) || threadFull(comments, text);
+  const err = checkAsk(text) || threadFull(comments, text) || overBudget(comments, text);
   if (err) return { ok: false, reason: err };
   // Amu ignores a second initial ask for the same id and a second reply for the same round.
   const head = firstLine(text);
@@ -120,7 +153,7 @@ function main(argv, now = new Date()) {
   let pr;
   try {
     if (kind === "ask") {
-      pr = ASK_PR;
+      pr = askPr();
       const early = checkAsk(text);
       if (early) return ng(early);
       plan = planAsk(text, fetchAll(pr), now);
@@ -149,4 +182,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, planAsk, planRequest, fetchAll, run, main };
