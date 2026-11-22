@@ -13,6 +13,8 @@ const fields = (line) => Object.fromEntries(line.replace(/^\[[^\]]+\]\s*/, "").s
 
 function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   const cs = comments || [];
+  const isCancel = (c) => { const h = first(c.body), f = fields(h); return h.startsWith("[MONE-ASK]") && f.id === id && f.status === "cancel"; };
+  if (cs.some(isCancel)) return { side: "cancelled", checks: [], action: "この相談は取り消されています。調べることも、送り直すこともしません" };
   const mine = cs.find((c) => {
     const h = first(c.body), f = fields(h);
     return f.id === id && ((round === 1 && h.startsWith("[MONE-ASK]") && f.status !== "cancel") || (h.startsWith("[MONE-REPLY]") && Number(f.round) === round));
@@ -24,6 +26,13 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   const checks = [];
   const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
   add("相談の書き込み", mine, mine ? "あり" : `id=${id} round=${round} の書き込みが見つかりません`);
+  if (round > 1 && mine) {
+    // Amu answers a reply only after one normal answer to the round before it, and only when the reply came after that answer.
+    const initial = cs.some((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[MONE-ASK]") && f.id === id && f.status !== "cancel"; });
+    const prev = cs.filter((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round - 1 && f.status !== "blocked"; });
+    const after = prev.length === 1 && Date.parse(mine.created_at) > Date.parse(prev[0].created_at);
+    add("順番", initial && after, !initial ? "最初の相談 (round=1) がありません" : prev.length !== 1 ? `round=${round - 1} の通常の答えが ${prev.length} 件です (1件必要)` : after ? "OK" : `round=${round} の書き込みが、round=${round - 1} の答えより前です`);
+  }
   const used = cs.reduce((n, c) => n + chars(c.body), 0);
   add("文字数", used <= MAX_THREAD_CHARS, `スレッド合計 ${used} 字 (上限 ${MAX_THREAD_CHARS})`);
   add("件数", cs.length < MAX_THREAD_COMMENTS, `${cs.length} 件`);

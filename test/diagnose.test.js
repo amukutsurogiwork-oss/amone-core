@@ -41,3 +41,24 @@ test("when everything on Mone's side is fine, it is Amu's or the shortcut's side
   assert.strictEqual(r.side, "amu");
   assert.match(r.action, /画面/);
 });
+
+// Codex P2 on #90: a cancelled consultation is finished; never blame Amu or resend it.
+test("a cancelled consultation ends the diagnosis without resending", () => {
+  const r = diagnose(base({ comments: [ask("X1"), { body: "[MONE-ASK] id=X1 status=cancel\n取消", created_at: "2026-11-22T12:31:00Z" }] }));
+  assert.strictEqual(r.side, "cancelled");
+  assert.doesNotMatch(r.action, /出し直/);
+});
+// Codex P2 on #90: Amu answers a reply only after exactly one normal answer to the round before it, posted before the reply.
+test("a reply without the previous round's answer (or posted before it) is a Mone-side ordering problem", () => {
+  const reply = (r, at) => ({ body: `[MONE-REPLY] id=X1 round=${r}\n続き`, created_at: at });
+  const ans = (r, at) => ({ body: `[AMU-ANSWER] request=X1 round=${r} source=1\nok`, created_at: at });
+  const ok = diagnose(base({ round: 2, comments: [ask("X1"), ans(1, "2026-11-22T12:29:00Z"), reply(2, "2026-11-22T12:29:30Z")] }));
+  assert.deepStrictEqual(ng(ok), []);
+  const noPrev = diagnose(base({ round: 2, comments: [ask("X1"), reply(2, "2026-11-22T12:29:30Z")] }));
+  assert.ok(ng(noPrev).includes("順番"));
+  assert.strictEqual(noPrev.side, "mone");
+  const early = diagnose(base({ round: 2, comments: [ask("X1"), reply(2, "2026-11-22T12:28:30Z"), ans(1, "2026-11-22T12:29:00Z")] }));
+  assert.ok(ng(early).includes("順番"));
+  const noAsk = diagnose(base({ round: 2, comments: [ans(1, "2026-11-22T12:29:00Z"), reply(2, "2026-11-22T12:29:30Z")] }));
+  assert.ok(ng(noAsk).includes("順番"));
+});
