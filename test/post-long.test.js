@@ -48,3 +48,30 @@ test("the consultation ID must use only letters, digits and hyphens", () => {
   assert.throws(() => splitParts("a/b", 1, "a"), /ID/);
   assert.ok(splitParts("BOOTH-D1B-20261122", 1, "a").length === 1);
 });
+
+// Codex P2 on #87: the written file must itself stay within 4,500 characters (no extra trailing newline).
+test("the files to write are within 4,500 characters exactly as written", () => {
+  const { partFiles } = require("../scripts/post-long");
+  const files = partFiles("ID4", 1, "い".repeat(10000));
+  assert.ok(files.length >= 3);
+  for (const f of files) assert.ok(len(f.content) <= MAX_PART_CHARS, `${f.path} is ${len(f.content)} chars`);
+  assert.deepStrictEqual(files.map((f) => f.path), files.map((_, i) => `consult/ID4/r1/part-${i + 1}.md`));
+});
+
+// Codex P2 on #87: format, duplicate and budget checks run before anything is pushed,
+// and a new long ask is refused while an earlier long ask is unanswered (pushing would change the head it names).
+test("a long ask is checked before pushing: bad header, duplicate, budget, and a pending long ask all stop it", () => {
+  const { planLong } = require("../scripts/post-long");
+  const NOW = new Date("2026-11-22T07:00:00Z");
+  const ok = "[MONE-ASK] id=L1 lane=chat op=design round=1 status=open\n" + "本文\n".repeat(2000);
+  assert.strictEqual(planLong(ok, [], NOW).ok, true);
+  assert.strictEqual(planLong("hello\n本文", [], NOW).ok, false);
+  assert.strictEqual(planLong(ok, [{ body: "[MONE-ASK] id=L1 lane=chat op=design round=1 status=open\nx" }], NOW).ok, false);
+  assert.strictEqual(planLong(ok, [{ body: "x".repeat(4400) }], NOW).ok, false);
+  const pendingLong = [{ body: "[MONE-ASK] id=L0 lane=chat op=design round=1 status=open\n長文の相談です。files=2 sha=" + "a".repeat(40) + " path=consult/L0/r1/" }];
+  const r = planLong(ok, pendingLong, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /L0/);
+  const answered = pendingLong.concat([{ body: "[AMU-ANSWER] request=L0 round=1 source=1\nok" }]);
+  assert.strictEqual(planLong(ok, answered, NOW).ok, true);
+});
