@@ -148,7 +148,7 @@ test("review targets do not make a repo a launch target", () => {
 test("the real registry file: valid, read-only review target for yuhi PR 83, and the launch targets are unchanged", () => {
   const raw = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "collab", "registry.json"), "utf8"));
   assert.deepEqual(chatReviewTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/yuhi-colorsing-system", pr: 83, operations: ["review"] }] });
-  assert.deepEqual(chatLaunchTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/ai-collab-sandbox", pr: 32 }] });
+  assert.deepEqual(chatLaunchTargets(raw), { ok: true, targets: [{ repo: "amukutsurogiwork-oss/ai-collab-sandbox", pr: 33 }] });
 });
 
 // Amu's review V10-REVIEW-1: stricter checks (fail closed), explicit required keys, no duplicate operations, only "review" reads another PR.

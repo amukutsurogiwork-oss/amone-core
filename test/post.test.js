@@ -96,3 +96,31 @@ test("cancellations are still allowed when the thread has 200 comments", () => {
   assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", many, NOW).ok, true);
   assert.strictEqual(planRequest("[MONE-REQUEST] id=R1 status=cancel\n取消\n", SHA, many, NOW).ok, true);
 });
+
+// 2026-11-22: Amu stopped on PR #32 with only 5 comments (about 8,500 characters); 3 comments (about 4,600) worked.
+// Amu reads about 5,000 characters at once, so the whole thread is kept within 90% of that: 4,500 characters.
+test("ask is refused when the thread plus the new post would exceed 4,500 characters", () => {
+  const prev = [{ body: "あ".repeat(4000) }];
+  const r = planAsk(ASK + "い".repeat(600), prev, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /4500/);
+  assert.match(r.reason, /引っ越/);
+  assert.strictEqual(planAsk(ASK, prev, NOW).ok, true);
+});
+// The budget is for the Chat thread only: the Work request thread (PR #25) is read by Work, whose limit was not measured.
+test("the character budget counts characters (not bytes) and applies to the Chat thread only", () => {
+  assert.strictEqual(planAsk(ASK, [{ body: "漢".repeat(4400) }], NOW).ok, true);
+  assert.strictEqual(planRequest(req("2026-11-18 12:00"), SHA, [{ body: "x".repeat(9000) }], NOW).ok, true);
+});
+test("a cancellation is allowed even when the character budget is used up", () => {
+  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", [{ body: "x".repeat(5000) }], NOW).ok, true);
+});
+test("the consultation thread comes from the registry (one sandbox entry), so a move is one registry change", () => {
+  const { askPr } = require("../scripts/post");
+  const reg = (ps) => JSON.stringify({ projects: ps });
+  const sb = (n) => ({ repo: "amukutsurogiwork-oss/ai-collab-sandbox", consultPrNumber: n });
+  assert.strictEqual(askPr(reg([sb(33), { repo: "x/y" }])), 33);
+  assert.throws(() => askPr(reg([{ repo: "x/y" }])), /1件だけ/);
+  assert.throws(() => askPr(reg([sb(33), sb(34)])), /1件だけ/);
+  assert.throws(() => askPr(reg([sb(0)])), /1件だけ/);
+});
