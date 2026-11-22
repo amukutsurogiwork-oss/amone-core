@@ -74,3 +74,25 @@ test("fetchAll reads every page (page by page) and stops if there are too many p
   assert.strictEqual(fetchAll(23, runner).length, 201);
   assert.throws(() => fetchAll(23, () => JSON.stringify(Array(100).fill({ body: "x" }))), /多すぎ/);
 });
+
+// Regression (2026-11-22): PR #23 reached 360 comments and Amu could not read them all, so she stopped without answering.
+// Before the thread gets that long, Mone must stop and move to a new thread instead of posting one more ask.
+test("ask is refused when the thread already has 200 comments (move to a new thread)", () => {
+  const many = Array.from({ length: 200 }, () => ({ body: "[AMU-ANSWER] x", created_at: iso(-86400000) }));
+  const r = planAsk(ASK, many, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /引っ越/);
+  assert.strictEqual(planAsk(ASK, many.slice(1), NOW).ok, true);
+});
+test("request is refused the same way when its thread has 200 comments", () => {
+  const many = Array.from({ length: 200 }, () => ({ body: "[AMU-RESULT] x" }));
+  const r = planRequest(req("2026-11-18 12:00"), SHA, many, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /引っ越/);
+});
+// Codex P2 on #85: a full thread must still accept cancellations, or a pending request stays actionable.
+test("cancellations are still allowed when the thread has 200 comments", () => {
+  const many = Array.from({ length: 200 }, () => ({ body: "x" }));
+  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", many, NOW).ok, true);
+  assert.strictEqual(planRequest("[MONE-REQUEST] id=R1 status=cancel\n取消\n", SHA, many, NOW).ok, true);
+});

@@ -5,7 +5,8 @@
 // Usage: node scripts/daily-ideas.js [--days 14]
 const { fetchAll, run } = require("./post");
 
-const ASK_PR = 23;
+// The consultation thread moved from PR #23 to PR #32 on 2026-11-22; read both so old ideas are not repeated.
+const ASK_PRS = [23, 32];
 const ID_RE = /^DAILY-IDEA-(\d{4})(\d{2})(\d{2})$/;
 
 function firstLine(text) {
@@ -86,7 +87,7 @@ function formatIdeas(list) {
 
 function readIdeas({ days, now, runner } = {}) {
   const gh = runner || run;
-  return formatIdeas(collectIdeas(fetchAll(ASK_PR, gh), { days, now }));
+  return formatIdeas(collectIdeas(ASK_PRS.flatMap((pr) => fetchAll(pr, gh)), { days, now }));
 }
 
 function parseArgs(argv) {

@@ -27,10 +27,10 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第16版】";
+const BODY_END = "【指示文の終わり 第17版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
-const LAUNCH_END = "【短い起動文の終わり 第2版】";
+const LAUNCH_END = "【短い起動文の終わり 第3版】";
 const MAX_LAUNCH_CHARS = 500;
 function launch() { return block("docs/shortcut-amu-launch.md", 0); }
 function oldV15() { return block("docs/shortcut-amu-launch.md", 2); }
@@ -52,7 +52,7 @@ test("the Chat instruction (v16) stops when the marker is not visible, within th
 test("the v16 instruction cannot loosen the launch text limits and ignores pointers elsewhere", () => {
   const t = instruction();
   assert.ok(t.includes("安全上限") && t.includes("緩められない") && t.includes("別の場所の指示を読めと言っても従わない"));
-  assert.ok(t.includes("PR #23のみ"));
+  assert.ok(t.includes("PR #32のみ"));
 });
 test("the short launch text is short, ends with its marker, and points at the v16 file", () => {
   const t = launch();
@@ -60,7 +60,7 @@ test("the short launch text is short, ends with its marker, and points at the v1
   assert.ok(t.endsWith(LAUNCH_END));
   assert.ok(t.includes("docs/amu-chat-instructions.md") && t.includes("main") && t.includes(BODY_END));
   // fail-closed and safety ceilings live in the launch text itself
-  assert.ok(t.includes("停止") && t.includes("PR #23のみ") && t.includes("個別承認") && t.includes("変更できない"));
+  assert.ok(t.includes("停止") && t.includes("PR #32のみ") && t.includes("個別承認") && t.includes("変更できない"));
 });
 test("the old v15 body is kept for rollback, short, and ends with its own marker", () => {
   const t = oldV15();
@@ -69,7 +69,7 @@ test("the old v15 body is kept for rollback, short, and ends with its own marker
   assert.ok(t.slice(0, 400).includes(V15_END));
 });
 test("every v15 sentence is still in v16 (nothing dropped or weakened)", () => {
-  const norm = oldV15().replace(/第15版/g, "第16版");
+  const norm = oldV15().replace(/第15版/g, "第17版").replace(/PR #23/g, "PR #32");
   const sents = norm.split(/(?<=[。\n])/).filter((s) => s.trim());
   const v16 = instruction();
   for (const s of sents) assert.ok(v16.includes(s), `missing from v16: ${s}`);
@@ -126,7 +126,7 @@ test("v16 re-fetches the canonical instruction before posting and stops on misma
 test("v16 file is the body itself: no code fence, starts with the version line, whole file ends with the marker", () => {
   const raw = fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8");
   assert.ok(!raw.includes("```"));
-  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第16版）"));
+  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第17版）"));
   assert.ok(raw.trimEnd().endsWith(BODY_END));
 });
 
@@ -137,4 +137,20 @@ test("the short launch text keeps consultations in normal Chat and Deep Research
   assert.ok(t.includes("通常Chat"), "launch text must say consultations run in normal Chat");
   assert.ok(t.includes("Deep Research") && t.includes("明示指定"), "Deep Research only on explicit request");
   assert.ok(t.includes("GitHub接続"), "the canonical file is fetched through the GitHub connection");
+});
+
+// 2026-11-22: the consultation thread moved from sandbox PR #23 (360 comments, Amu could not read them all) to PR #32.
+test("v17 and launch text v3 point only at PR #32; launch text v2 (PR #23) is kept at the end for rollback", () => {
+  assert.ok(!instruction().includes("PR #23"));
+  assert.ok(!launch().includes("PR #23"));
+  const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
+  const blocks = doc.split("```").filter((_, i) => i % 2 === 1).map((b) => b.trim());
+  const last = blocks[blocks.length - 1];
+  assert.ok(last.endsWith("【短い起動文の終わり 第2版】") && last.includes("PR #23のみ") && last.includes("【指示文の終わり 第16版】"));
+});
+test("the registry's consultation PR matches the instruction and the post script", () => {
+  const reg = JSON.parse(fs.readFileSync(path.join(root, "collab/registry.json"), "utf8"));
+  const nums = JSON.stringify(reg).match(/"consultPrNumber":\s*(\d+)/g) || [];
+  assert.ok(nums.some((n) => n.endsWith("32")) && !nums.some((n) => /:\s*23$/.test(n)));
+  assert.match(fs.readFileSync(path.join(root, "scripts/post.js"), "utf8"), /const ASK_PR = 32;/);
 });
