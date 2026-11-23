@@ -5,6 +5,9 @@
 // 実行: node scripts/iphone-check.cjs <htmlファイル> [<htmlファイル>...]   (Playwright と Chromium が必要)
 const path = require("node:path");
 
+// the phone the page is checked on (fixed numbers, so the baseline never comes from the page itself)
+const DEVICE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true };
+
 // pure: decide from measured boxes (tested without a browser)
 function judge({ viewportWidth, scrollWidth, targets }) {
   const overflow = scrollWidth > viewportWidth + 1;
@@ -15,7 +18,7 @@ function judge({ viewportWidth, scrollWidth, targets }) {
 async function measure(file) {
   const { chromium, devices } = require("playwright");
   const b = await chromium.launch();
-  const ctx = await b.newContext({ ...devices["iPhone 13"] });
+  const ctx = await b.newContext({ ...devices["iPhone 13"], ...DEVICE });
   const p = await ctx.newPage();
   await p.goto("file://" + path.resolve(file));
   await p.waitForTimeout(800);
@@ -27,8 +30,9 @@ async function measure(file) {
       const visible = r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && !el.closest("[hidden]");
       return { label: (el.id ? "#" + el.id : el.tagName.toLowerCase()) + " " + (el.textContent || el.value || "").trim().slice(0, 16), w: Math.round(r.width), h: Math.round(r.height), visible };
     });
-    return { viewportWidth: window.innerWidth, scrollWidth: document.documentElement.scrollWidth, targets };
+    return { scrollWidth: Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0), targets };
   });
+  m.viewportWidth = DEVICE.viewport.width; // wide content can stretch window.innerWidth, so never use it as the baseline
   await b.close();
   return judge(m);
 }
@@ -48,4 +52,4 @@ async function main(files) {
 
 if (require.main === module) main(process.argv.slice(2)).then((c) => process.exit(c));
 
-module.exports = { judge };
+module.exports = { judge, DEVICE };
