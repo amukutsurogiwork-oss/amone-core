@@ -72,3 +72,11 @@ test("an answer or blocked report with another source does not count as answered
   const right = diagnose(base({ comments: [a, { id: 101, body: "[AMU-ANSWER] request=X1 round=1 source=100\nok", created_at: "2026-11-22T12:29:00Z" }] }));
   assert.strictEqual(right.side, "none");
 });
+
+// Codex P2 on #90 (deferred, fixed here): a malformed header is a Mone-side problem, not Amu's.
+test("a malformed consultation header is reported as a Mone-side format problem", () => {
+  const bad = { body: "[MONE-ASK] id=X1 lane=chat op=review round=2 status=open\n本文", created_at: "2026-11-22T12:30:00Z" };
+  const r = diagnose(base({ comments: [bad] }));
+  assert.ok(ng(r).includes("書式"));
+  assert.strictEqual(r.side, "mone");
+});

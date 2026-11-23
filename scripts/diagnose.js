@@ -18,6 +18,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   const mine = cs.find((c) => {
     const h = first(c.body), f = fields(h);
     return f.id === id && ((round === 1 && h.startsWith("[MONE-ASK]") && f.status !== "cancel") || (h.startsWith("[MONE-REPLY]") && Number(f.round) === round));
+    // (a [MONE-ASK] with a wrong round is still found here, so its format check below reports it)
   });
   // an answer counts only when its source is this consultation comment's own number (ID, round and source must all match)
   const answers = mine ? cs.filter((c) => {
@@ -30,6 +31,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   const checks = [];
   const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
   add("相談の書き込み", mine, mine ? "あり" : `id=${id} round=${round} の書き込みが見つかりません`);
+  if (mine) { const err = require("./check-ask").checkAsk(mine.body); add("書式", !err, err || "OK"); }
   if (round > 1 && mine) {
     // Amu answers a reply only after one normal answer to the round before it, and only when the reply came after that answer.
     const initial = cs.some((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[MONE-ASK]") && f.id === id && f.status !== "cancel"; });
