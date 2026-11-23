@@ -21,7 +21,9 @@ async function measure(file) {
   await p.waitForTimeout(800);
   const m = await p.evaluate(() => {
     const targets = [...document.querySelectorAll("a[href],button,input,select,textarea,[role=button]")].map((el) => {
-      const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      // a control inside a label is pressed through the whole label, so measure the label
+      const box = el.closest("label") || el;
+      const r = box.getBoundingClientRect(), cs = getComputedStyle(el);
       const visible = r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && !el.closest("[hidden]");
       return { label: (el.id ? "#" + el.id : el.tagName.toLowerCase()) + " " + (el.textContent || el.value || "").trim().slice(0, 16), w: Math.round(r.width), h: Math.round(r.height), visible };
     });
