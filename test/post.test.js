@@ -142,3 +142,12 @@ test("the budget reserves 800 characters for each answer still to come (pending 
   const answered = [...pending, { body: "[AMU-ANSWER] request=OLD round=1 source=1\nok" }];
   assert.strictEqual(planAsk(ASK + "x".repeat(300), answered, NOW).ok, true);
 });
+// Codex P2 on #95: an answer releases an ask only when id, round AND source (the ask's comment number) match, and it is
+// not a blocked report (the instruction, diagnose.js and status.js count it the same way). Otherwise Amu still reads it.
+test("an answer with the wrong source, or a blocked report, does not release the ask from what Amu reads in full", () => {
+  const old = { id: 101, body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(6000) };
+  const post = ASK + "x".repeat(300);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=999\nok" }], NOW).ok, false);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101 status=blocked\nx" }], NOW).ok, false);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101\nok" }], NOW).ok, true);
+});

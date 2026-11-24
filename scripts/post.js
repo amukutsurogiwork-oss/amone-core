@@ -54,13 +54,18 @@ function pendingKeys(comments) {
   for (const c of comments || []) {
     const head = firstLine(c.body || ""), f = parseFields(head);
     if (head.startsWith("[MONE-ASK]") && f.status === "cancel") cancelled.add(f.id);
-    else if (head.startsWith("[MONE-ASK]")) want.set(`${f.id}:1`, c.body);
-    else if (head.startsWith("[MONE-REPLY]")) want.set(`${f.id}:${f.round}`, c.body);
+    else if (head.startsWith("[MONE-ASK]")) want.set(`${f.id}:1`, c);
+    else if (head.startsWith("[MONE-REPLY]")) want.set(`${f.id}:${f.round}`, c);
   }
+  // Codex P2 on #95: answered only when id, round and source (the ask's comment number) all match and it is not blocked,
+  // as in the instruction, diagnose.js and status.js. A comment without a number (tests of older code) matches any source.
   for (const c of comments || []) {
-    const head = firstLine(c.body || ""), f = parseFields(head);
-    if (head.startsWith("[AMU-ANSWER]")) want.delete(`${f.request}:${f.round}`);
+    const head = firstLine(c.body || ""), f = parseFields(head), key = `${f.request}:${f.round}`;
+    if (!head.startsWith("[AMU-ANSWER]") || f.status === "blocked" || !want.has(key)) continue;
+    const askId = want.get(key).id;
+    if (askId === undefined || String(askId) === String(f.source)) want.delete(key);
   }
+  for (const [k, c] of want) want.set(k, c.body);
   for (const k of [...want.keys()]) if (cancelled.has(k.split(":")[0])) want.delete(k);
   return want; // key -> body of the waiting post
 }
