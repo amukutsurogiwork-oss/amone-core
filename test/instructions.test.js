@@ -170,3 +170,9 @@ test("v27: a run without an answer posts one [AMU-STATUS]; a stop adds an improv
   for (const w of ["通常回答を1件も投稿しなかった実行は、安全な投稿条件を満たす場合だけAMU-STATUSを1件投稿する", "モネへの改善案: 原因を解消する具体案",
     "コード実行: 使えた／使えなかった", "同じ実行のSTATUSを重ねて投稿しない", "STATUSによる再起動を禁止する", "これらを再起動のきっかけにしない"]) has(w);
 });
+// 2026-11-24 23:47 (READ-TEST-UNDERSTAND): Amu found the unanswered ask but ended mid-way without answering or posting a status,
+// with no safety problem (her own notice). Her proposal: keep going to the end while the safety conditions hold.
+test("v27: as long as safety holds, one run goes on from fetching to answering, posting and checking, and does not end on a progress report", () => {
+  has("安全条件を満たす限り、取得から回答・投稿・結果確認まで1回で続け、途中経過の報告で終えない");
+  has("未実施の確認は実行し、停止理由にしない");
+});
