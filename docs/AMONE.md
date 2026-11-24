@@ -44,7 +44,7 @@ CI・Codex レビュー・本人の承認は、別々に確認する。どれか
 | アム Chat 起動の指示文 | amone-core `docs/shortcut-amu-launch.md` |
 | モネ ⇄ アムの相談 | ai-collab-sandbox の、台帳 (`collab/registry.json` の `consultPrNumber`) が指す相談用 PR (Merge しない、タイトルは `[AMONE-CHAT]` で始める)。PR #23・#32・#33 と Issue #13 は過去の記録 |
 | 相談スレッドの長さ | アムが一度に読めるのは約5,000字。スレッドの全コメントは合計 **4,500字まで** (9割)。`scripts/post.js` がこえる投稿を止める (これから来る回答の分として、未回答1件ごとと今の投稿に800字ずつ残す)。アムの回答は800字以内 |
-| 長い相談 | `scripts/post-long.js` で本文を `consult/ID/rR/part-k.md` (1つ4,500字まで・最大6) に分け、コメントは目印 (files=N sha=S path=…) だけ。アムは対象PRの head_sha と同じ SHA の固定パスだけを読む (起動文 第5版・指示文 第19版) |
+| 長い相談 | `scripts/post-long.js` で本文を `consult/ID/rR/part-k.md` (1つ4,500字まで・最大6) に分け、コメントは目印 (files=N sha=S path=…) だけ。アムは対象PRの head_sha と同じ SHA の固定パスだけを読む (起動文 第6版・指示文 第20版。第20版でコメントは番号・本文・投稿者・作成時刻だけ取り出して読む) |
 | スレッドの引っ越し | (1) sandbox に新しい相談用 PR を作る (タイトル `[AMONE-CHAT] AMONE 相談スレッドN(モネ⇄アム・Mergeしない)`) (2) 台帳の `consultPrNumber` を変える PR を出し、テスト・Codex のあと Merge (3) 新しいスレッドで相談を出し直す。起動文の貼り替えは要らない |
 | 国永の作業の記録 | yuhi-colorsing-system の Issue/PR (非公開) |
 
