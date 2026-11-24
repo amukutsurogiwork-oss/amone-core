@@ -61,7 +61,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   if (bad.length) return { side: "mone", checks, action: `モネの側の原因: ${bad.map((c) => c.name).join("・")}。原因を直してから、1回だけ出し直します (2回続けて失敗したら止めて報告)` };
   // 2026-11-24: Amu posts [AMU-STATUS] whenever she runs without answering; read it before asking よしひろさん.
   const status = cs.filter((c) => first(c.body).startsWith("[AMU-STATUS]") && wakeSentAt && Date.parse(c.created_at) >= Date.parse(wakeSentAt)).pop();
-  if (status) return { side: "amu-status", checks, action: `アムが状態の報告を書いています: ${String(status.body).split(/\r?\n/).slice(1).join(" / ")}。モネの側で直せるものを直します` };
+  if (status) return { side: "amu-status", checks, action: `アムが状態の報告を書いています: ${String(status.body).split(/\r?\n/).slice(1).join(" / ")}。「モネへの改善案」があれば、それをもとにモネが直します` };
   return { side: "amu", checks, action: "モネの側は問題ありません。アムかショートカットの側です。よしひろさんに、アムの画面 (止まった報告や、動いていないか) を見てもらいます。送り直しはしません" };
 }
 
