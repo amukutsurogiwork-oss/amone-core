@@ -105,7 +105,7 @@ const OTHER = (id, n) => [
   { body: `[AMU-ANSWER] request=${id} round=1 source=1\n` + "い".repeat(n) },
 ];
 test("answered asks of other ids do not count: a long thread is fine as long as what Amu reads in full is small", () => {
-  const prev = [...OTHER("A", 1700), ...OTHER("B", 1700)];
+  const prev = [...OTHER("A", 1400), ...OTHER("B", 1400)];
   assert.strictEqual(planAsk(ASK + "x".repeat(800), prev, NOW).ok, true);
 });
 test("ask is refused when what Amu reads in full (this id's comments + this post + answers to come) would exceed 8,000 characters", () => {
@@ -160,4 +160,11 @@ test("ask is refused when the whole thread plus the new post would exceed 8,000 
   assert.strictEqual(r.ok, false);
   assert.match(r.reason, /引っ越/);
   assert.strictEqual(planAsk(ASK, [...OTHER("A", 1500)], NOW).ok, true);
+});
+// Codex P2 on #102: the whole-thread limit must also keep room for the answers still to come (800 characters each).
+test("the whole-thread limit keeps room for this post's answer and other pending answers", () => {
+  const prev = [...OTHER("A", 3650), { body: "x".repeat(70) }]; // 7,450 + headers, all answered
+  const r = planAsk(ASK, prev, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /引っ越/);
 });

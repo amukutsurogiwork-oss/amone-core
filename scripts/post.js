@@ -94,8 +94,10 @@ function readChars(comments, ids) {
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
   const all = (comments || []).reduce((n, c) => n + chars(c.body), 0);
-  if (all + chars(text) > MAX_THREAD_CHARS)
-    return `スレッド全体の文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${all} 字 + この投稿 ${chars(text)} 字)。アムが全部を表示すると切れるので、投稿せずに止まります。新しいスレッドへ引っ越してください`;
+  // Codex P2 on #102: keep room for the answers still to come here too.
+  const allReserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
+  if (all + chars(text) + allReserve > MAX_THREAD_CHARS)
+    return `スレッド全体の文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${all} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${allReserve} 字)。アムが全部を表示すると切れるので、投稿せずに止まります。新しいスレッドへ引っ越してください`;
   const used = readChars(comments, readIds(comments, text));
   const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
   return used + chars(text) + reserve > MAX_READ_CHARS
