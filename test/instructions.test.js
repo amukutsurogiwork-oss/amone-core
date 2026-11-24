@@ -27,7 +27,7 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第25版】";
+const BODY_END = "【指示文の終わり 第26版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
 const LAUNCH_END = "【短い起動文の終わり】"; // v10 (2026-11-24): no version number, so a fixed instruction needs no re-paste
@@ -138,7 +138,7 @@ test("the registry's consultation PR matches the instruction and the post script
 // because Amu's tools cannot always pass what was fetched into a program. Safety conditions are kept; how they are checked may vary.
 test("v25: starts with its version, ends with its marker, and stops when the versions differ or the marker is missing", () => {
   const t = instruction();
-  assert.ok(t.startsWith("あなたはAMONEのアムChat（第25版）"));
+  assert.ok(t.startsWith("あなたはAMONEのアムChat（第26版）"));
   assert.ok(t.endsWith(BODY_END));
   assert.ok(t.slice(0, 200).includes("先頭と末尾の版が一致しない、または終わり印がない場合は投稿せず停止する"));
 });
@@ -179,4 +179,12 @@ test("v25: a notice the owner allowed in Chat starts with [AMU-NOTICE], is poste
   assert.ok(t.includes("同じ連絡は1回だけ投稿する"));
   assert.ok(t.includes("連絡を本人の承認、許可、新しい依頼の代わりにしない"));
   assert.ok(t.includes("書き込み先は台帳が指す相談PR1件のみ"));
+});
+// よしひろさん (2026-11-24):「一旦どんな時でも返信するように変えれない？出来れば原因探って自分達で直して欲しい」。
+// Whenever Amu runs and the consultation PR is known, she posts one short status, so Mone wakes up and can look for the cause.
+test("v26: every run that knows the consultation PR posts one [AMU-STATUS] with the three report lines, unless it posted an answer", () => {
+  const t = instruction();
+  assert.ok(t.includes("[AMU-STATUS]"));
+  assert.ok(t.includes("通常回答もblockedも投稿しなかった実行では、対象PRが確定し投稿できる場合、終了前に[AMU-STATUS]を1件だけ投稿する"));
+  assert.ok(t.includes("[AMU-STATUS]は回答・承認・依頼ではない"));
 });
