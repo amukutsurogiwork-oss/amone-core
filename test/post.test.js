@@ -97,23 +97,30 @@ test("cancellations are still allowed when the thread has 200 comments", () => {
   assert.strictEqual(planRequest("[MONE-REQUEST] id=R1 status=cancel\n取消\n", SHA, many, NOW).ok, true);
 });
 
-// 2026-11-22: Amu stopped on PR #32 with only 5 comments (about 8,500 characters); 3 comments (about 4,600) worked.
-// Amu reads about 5,000 characters at once, so the whole thread is kept within 90% of that: 4,500 characters.
-test("ask is refused when the thread plus the new post would exceed 4,500 characters", () => {
-  const prev = [{ body: "あ".repeat(3500) }];
-  const r = planAsk(ASK + "い".repeat(600), prev, NOW);
-  assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /4500/);
-  assert.match(r.reason, /引っ越/);
+// 2026-11-24 (instruction v21, Amu's design): Amu checks every comment's header (id, round, source, cancel, answered)
+// with a program and reads in full only the comments of the asks she will answer. She read 10 comments / 8,930 characters
+// in full without a cut (2026-11-24 test), so what she reads in full is kept within 8,000 characters.
+const OTHER = (id, n) => [
+  { body: `[MONE-ASK] id=${id} lane=chat op=design round=1 status=open\n` + "あ".repeat(n) },
+  { body: `[AMU-ANSWER] request=${id} round=1 source=1\n` + "い".repeat(n) },
+];
+test("answered asks of other ids do not count: a long thread is fine as long as what Amu reads in full is small", () => {
+  const prev = [...OTHER("A", 3000), ...OTHER("B", 3000), ...OTHER("C", 3000)];
   assert.strictEqual(planAsk(ASK, prev, NOW).ok, true);
 });
-// The budget is for the Chat thread only: the Work request thread (PR #25) is read by Work, whose limit was not measured.
+test("ask is refused when what Amu reads in full (this id's comments + this post + answers to come) would exceed 8,000 characters", () => {
+  const prev = [{ body: "[MONE-ASK] id=T1 lane=chat op=design round=1 status=open\n" + "あ".repeat(3500) }, { body: "[AMU-ANSWER] request=T1 round=1 source=1\n" + "い".repeat(3000) }];
+  const r = planAsk("[MONE-REPLY] id=T1 round=2\n" + "う".repeat(800), prev, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /8000/);
+  assert.strictEqual(planAsk("[MONE-REPLY] id=T1 round=2\n短く\n", prev, NOW).ok, true);
+});
 test("the character budget counts characters (not bytes) and applies to the Chat thread only", () => {
-  assert.strictEqual(planAsk(ASK, [{ body: "漢".repeat(3600) }], NOW).ok, true);
+  assert.strictEqual(planAsk(ASK + "漢".repeat(7000), [], NOW).ok, true);
   assert.strictEqual(planRequest(req("2026-11-18 12:00"), SHA, [{ body: "x".repeat(9000) }], NOW).ok, true);
 });
 test("a cancellation is allowed even when the character budget is used up", () => {
-  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", [{ body: "x".repeat(5000) }], NOW).ok, true);
+  assert.strictEqual(planAsk("[MONE-ASK] id=T1 status=cancel\n取消\n", [{ body: "[MONE-ASK] id=T1 lane=chat op=design round=1 status=open\n" + "x".repeat(9000) }], NOW).ok, true);
 });
 test("the consultation thread comes from the registry (one sandbox entry), so a move is one registry change", () => {
   const { askPr } = require("../scripts/post");
@@ -126,14 +133,21 @@ test("the consultation thread comes from the registry (one sandbox entry), so a 
 });
 // Codex P2 on #86: every ask or reply waits for an answer of up to 800 characters, so the budget must keep room for them.
 test("the budget reserves 800 characters for each answer still to come (pending ones and this post's own)", () => {
-  // 3,000 used + 200 new + 800 for this post's answer = 4,000: ok
-  assert.strictEqual(planAsk(ASK + "x".repeat(150), [{ body: "y".repeat(3000) }], NOW).ok, true);
-  // one earlier ask still unanswered: +800 more = 4,800: refused
-  const pending = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(2940) }];
-  const r = planAsk(ASK + "x".repeat(150), pending, NOW);
+  // other ask still unanswered: Amu reads it in full too. 6,000 + its answer 800 + this post + its answer 800 > 8,000
+  const pending = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(6000) }];
+  const r = planAsk(ASK + "x".repeat(300), pending, NOW);
   assert.strictEqual(r.ok, false);
   assert.match(r.reason, /回答/);
-  // once that ask is answered, its reserve is released
-  const answered = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(2600) }, { body: "[AMU-ANSWER] request=OLD round=1 source=1\nok" }];
-  assert.strictEqual(planAsk(ASK + "x".repeat(150), answered, NOW).ok, true);
+  // once that ask is answered, it is no longer read in full and its reserve is released
+  const answered = [...pending, { body: "[AMU-ANSWER] request=OLD round=1 source=1\nok" }];
+  assert.strictEqual(planAsk(ASK + "x".repeat(300), answered, NOW).ok, true);
+});
+// Codex P2 on #95: an answer releases an ask only when id, round AND source (the ask's comment number) match, and it is
+// not a blocked report (the instruction, diagnose.js and status.js count it the same way). Otherwise Amu still reads it.
+test("an answer with the wrong source, or a blocked report, does not release the ask from what Amu reads in full", () => {
+  const old = { id: 101, body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(6000) };
+  const post = ASK + "x".repeat(300);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=999\nok" }], NOW).ok, false);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101 status=blocked\nx" }], NOW).ok, false);
+  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101\nok" }], NOW).ok, true);
 });

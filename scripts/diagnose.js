@@ -6,7 +6,8 @@
 // Usage: node scripts/diagnose.js <相談ID> <round> <起こしメールを送った時刻 ISO>
 const { execFileSync } = require("node:child_process");
 
-const MAX_THREAD_CHARS = 4500, MAX_THREAD_COMMENTS = 200, WAKE_GAP_SECONDS = 300;
+const { pendingKeys, readChars, MAX_READ_CHARS } = require("./post");
+const MAX_THREAD_COMMENTS = 200, WAKE_GAP_SECONDS = 300;
 const chars = (s) => [...String(s || "")].length;
 const first = (b) => String(b || "").split(/\r?\n/)[0].trim();
 const fields = (line) => Object.fromEntries(line.replace(/^\[[^\]]+\]\s*/, "").split(/\s+/).filter((kv) => kv.includes("=")).map((kv) => kv.split("=")));
@@ -39,8 +40,10 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
     const after = prev.length === 1 && Date.parse(mine.created_at) > Date.parse(prev[0].created_at);
     add("順番", initial && after, !initial ? "最初の相談 (round=1) がありません" : prev.length !== 1 ? `round=${round - 1} の通常の答えが ${prev.length} 件です (1件必要)` : after ? "OK" : `round=${round} の書き込みが、round=${round - 1} の答えより前です`);
   }
-  const used = cs.reduce((n, c) => n + chars(c.body), 0);
-  add("文字数", used <= MAX_THREAD_CHARS, `スレッド合計 ${used} 字 (上限 ${MAX_THREAD_CHARS})`);
+  // v21: Amu reads in full only the asks she answers (every pending one and this one) and their earlier rounds.
+  const ids = new Set([...pendingKeys(cs).keys()].map((k) => k.split(":")[0]).concat(id));
+  const used = readChars(cs, ids);
+  add("文字数", used <= MAX_READ_CHARS, `アムが全文を読む分 ${used} 字 (上限 ${MAX_READ_CHARS}、スレッド全体 ${cs.reduce((n, c) => n + chars(c.body), 0)} 字)`);
   add("件数", cs.length < MAX_THREAD_COMMENTS, `${cs.length} 件`);
   add("相談の場所", pr && pr.state === "open" && /^\[AMONE-CHAT\]/.test(pr.title || ""), pr ? `${pr.state} / ${pr.title}` : "PR が読めません");
   const m = mine && /files=(\d+) sha=([0-9a-f]{40})/.exec(mine.body);
