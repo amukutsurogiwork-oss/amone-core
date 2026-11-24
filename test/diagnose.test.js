@@ -83,3 +83,19 @@ test("a malformed consultation header is reported as a Mone-side format problem"
   assert.ok(ng(r).includes("書式"));
   assert.strictEqual(r.side, "mone");
 });
+// 2026-11-24: Amu posts [AMU-STATUS] whenever she runs without answering. diagnose reads it instead of asking よしひろさん.
+test("a status from Amu after the wake mail is read as Amu's own report, so Mone fixes it without asking よしひろさん", () => {
+  const status = { body: "[AMU-STATUS]\n投稿件数: 0\n停止理由: 取得失敗\n次の担当: モネ", created_at: "2026-11-22T12:40:00Z" };
+  const r = diagnose(base({ comments: [ask("X1"), status] }));
+  assert.strictEqual(r.side, "amu-status");
+  assert.match(r.action, /取得失敗/);
+  const old = { ...status, created_at: "2026-11-22T12:00:00Z" };
+  assert.notStrictEqual(diagnose(base({ comments: [ask("X1"), old] })).side, "amu-status");
+});
+// Codex P2 on #102: a status report describes Amu's run, not this consultation, so Mone-side checks still come first.
+test("Mone-side problems are still reported even when Amu posted a status after the wake mail", () => {
+  const status = { body: "[AMU-STATUS]\n投稿件数: 0\n停止理由: なし\n次の担当: モネ", created_at: "2026-11-22T12:40:00Z" };
+  const r = diagnose(base({ comments: [status] }));
+  assert.strictEqual(r.side, "mone");
+  assert.ok(ng(r).includes("相談の書き込み"));
+});

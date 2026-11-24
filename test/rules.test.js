@@ -15,6 +15,8 @@ test("CLAUDE.md holds the permanent rules", () => {
 });
 test("the numbers in CLAUDE.md are the ones the code and tests enforce", () => {
   assert.match(read("scripts/post.js"), /const MAX_READ_CHARS = 8000;/);
+  assert.match(read("scripts/post.js"), /const MAX_THREAD_CHARS = 8000;/);
+  assert.ok(read("CLAUDE.md").includes("スレッド全体も **8,000字まで**"));
   assert.ok(read("CLAUDE.md").includes("8,000字まで"));
   assert.match(read("test/instructions.test.js"), /const MAX_INSTRUCTION_CHARS = 4500;/);
   assert.match(read("test/instructions.test.js"), /const MAX_LAUNCH_CHARS = 500;/);
