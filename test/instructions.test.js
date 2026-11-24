@@ -27,10 +27,10 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第20版】";
+const BODY_END = "【指示文の終わり 第21版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
-const LAUNCH_END = "【短い起動文の終わり 第6版】";
+const LAUNCH_END = "【短い起動文の終わり 第7版】";
 const MAX_LAUNCH_CHARS = 500;
 function launch() { return block("docs/shortcut-amu-launch.md", 0); }
 function oldV15() { return block("docs/shortcut-amu-launch.md", 3); } // v6 added the old v5 block before it
@@ -71,9 +71,9 @@ test("the old v15 body is kept for rollback, short, and ends with its own marker
   assert.ok(t.slice(0, 400).includes(V15_END));
 });
 test("every v15 sentence is still in v16 (nothing dropped or weakened)", () => {
-  const norm = oldV15().replace(/第15版/g, "第20版")
+  const norm = oldV15().replace(/第15版/g, "第21版")
     // v20 widened this sentence on purpose (read only number/body/author/time); checked in the v20 test below.
-    .replace("全会話コメントを最終ページまで取得し番号・本文・投稿者・順序を確認。", "全会話コメントを最終ページまで取得し、各件の番号・本文・投稿者・作成時刻だけを取り出して扱う（付属情報は展開しない）。件数と順序を確認。");
+    .replace("全会話コメントを最終ページまで取得し番号・本文・投稿者・順序を確認。", "全コメントを100件ずつ最後まで取得し、各件の番号・本文・投稿者・作成時刻だけ取り出す（付属情報は展開しない）。");
   // Sentences naming a fixed thread number were replaced on purpose by the registry-driven target (v18); checked below.
   const sents = norm.split(/(?<=[。\n])/).filter((s) => s.trim() && !/PR #\d+/.test(s));
   const v16 = instruction();
@@ -131,7 +131,7 @@ test("v16 re-fetches the canonical instruction before posting and stops on misma
 test("v16 file is the body itself: no code fence, starts with the version line, whole file ends with the marker", () => {
   const raw = fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8");
   assert.ok(!raw.includes("```"));
-  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第20版）"));
+  assert.ok(raw.startsWith("あなたはAMONEのアムChat（第21版）"));
   assert.ok(raw.trimEnd().endsWith(BODY_END));
 });
 
@@ -184,7 +184,13 @@ test("a part-file check failure is reported once as blocked, with the reason cla
   }
 });
 test("v20: comments are read as number/body/author/time only, so the tool result does not cut off (Amu, BOOTH-SILENCER-1, 2026-11-24)", () => {
+  assert.ok(instruction().includes("各件の番号・本文・投稿者・作成時刻だけ取り出す（付属情報は展開しない）"));
+});
+test("v21: headers of all comments are checked by a program; only the asks being answered (and their earlier rounds) are read in full, within 8000 characters (Amu's design, 2026-11-24)", () => {
   const t = instruction();
-  assert.ok(t.includes("各件の番号・本文・投稿者・作成時刻だけを取り出して扱う（付属情報は展開しない）"));
-  assert.ok(t.includes("読み切れなければ停止"));
+  assert.ok(t.includes("100件ずつ最後まで取得"));
+  assert.ok(t.includes("取消・既回答・blocked・重複判定はプログラムで行い"));
+  assert.ok(t.includes("全文は処理する相談と同IDの過去回だけ読む（計8000字以内。超過・プログラム不可・途中切れは停止）"));
+  // the number must match the code that keeps what Amu reads in full within that size
+  assert.match(fs.readFileSync(path.join(root, "scripts/post.js"), "utf8"), /const MAX_READ_CHARS = 8000;/);
 });

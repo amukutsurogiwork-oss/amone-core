@@ -40,9 +40,11 @@ const MAX_PAGES = 50;
 // Amu reads every comment of the thread before answering; at 360 comments (PR #23, 2026-11-22) she could not.
 // Stop well before that and move to a new thread.
 const MAX_THREAD_COMMENTS = 200;
-// Amu reads about 5,000 characters of comments at once (2026-11-22: 3 comments / 4,600 chars worked, 5 / 8,500 did not;
-// the launch text was also cut at exactly 5,000 on 2026-11-15). Keep the whole Chat thread within 90%: 4,500 characters.
-const MAX_THREAD_CHARS = 4500;
+// Instruction v21 (2026-11-24, Amu's design): Amu checks every comment's header with a program and reads in full only
+// the comments of the asks she will answer (and their earlier rounds). She read 10 comments / 8,930 characters in full
+// without a cut (2026-11-24 test; 5 comments / 3,576 characters had been cut only by the extra API fields, fixed in v20).
+// Keep what she reads in full within 8,000 characters.
+const MAX_READ_CHARS = 8000;
 const chars = (s) => [...String(s || "")].length;
 // Each ask/reply waits for one answer of up to 800 characters (instruction v18); keep room for every answer still to come.
 const ANSWER_RESERVE = 800;
@@ -65,12 +67,28 @@ function pendingKeys(comments) {
 function pendingAnswers(comments) {
   return pendingKeys(comments).size;
 }
+// ids Amu will answer in this run: every pending one, plus the one being posted.
+function readIds(comments, text) {
+  const ids = new Set([...pendingKeys(comments).keys()].map((k) => k.split(":")[0]));
+  ids.add(parseFields(firstLine(text)).id);
+  return ids;
+}
+// Characters of the comments Amu reads in full: asks, replies and answers of those ids.
+function readChars(comments, ids) {
+  let n = 0;
+  for (const c of comments || []) {
+    const head = firstLine(c.body || ""), f = parseFields(head);
+    const id = head.startsWith("[AMU-ANSWER]") ? f.request : (head.startsWith("[MONE-ASK]") || head.startsWith("[MONE-REPLY]")) ? f.id : null;
+    if (id && ids.has(id)) n += chars(c.body);
+  }
+  return n;
+}
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
-  const used = (comments || []).reduce((n, c) => n + chars(c.body), 0);
+  const used = readChars(comments, readIds(comments, text));
   const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
-  return used + chars(text) + reserve > MAX_THREAD_CHARS
-    ? `スレッドの文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。アムが読み切れなくなるので、投稿せずに止まります。新しいスレッドへ引っ越してください`
+  return used + chars(text) + reserve > MAX_READ_CHARS
+    ? `アムが全文を読む分 (答える相談と、その前の回のやり取り) が上限 ${MAX_READ_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。投稿せずに止まります。相談を短くするか、長い相談は post-long.js で分けてください`
     : null;
 }
 // A cancellation is always allowed: refusing it would leave the original ask or request actionable.
@@ -187,4 +205,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { askPr, pendingKeys, planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, planAsk, planRequest, fetchAll, run, main };
