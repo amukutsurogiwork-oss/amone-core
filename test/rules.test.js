@@ -9,7 +9,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 
 test("CLAUDE.md holds the permanent rules", () => {
   const t = read("CLAUDE.md");
-  for (const w of ["お金", "秘密", "回避しない", "やり直さない", "できた", "5,000字", "4,500字", "800字", "500字", "返事が来たら、その見回りの予約はすぐ止める", "時刻は日本時間だけ", "事後報告", "scripts/diagnose.js", "post.js", "consultPrNumber", "subscribe_pr_activity", "ChatGPT に聞く", "日本語だけ", "コピーできる枠"]) {
+  for (const w of ["お金", "秘密", "回避しない", "やり直さない", "できた", "5,000字", "4,500字", "800字", "500字", "返事が来たら、その見回りの予約はすぐ止める", "時刻は日本時間だけ", "事後報告", "scripts/diagnose.js", "post.js", "consultPrNumber", "subscribe_pr_activity", "ChatGPT に聞く", "日本語だけ", "コピーできる枠", "選べる返事"]) {
     assert.ok(t.includes(w), `CLAUDE.md must mention ${w}`);
   }
 });
