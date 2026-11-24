@@ -45,6 +45,9 @@ const MAX_THREAD_COMMENTS = 200;
 // without a cut (2026-11-24 test; 5 comments / 3,576 characters had been cut only by the extra API fields, fixed in v20).
 // Keep what she reads in full within 8,000 characters.
 const MAX_READ_CHARS = 8000;
+// 2026-11-24 22:44: when Amu cannot narrow the comments inside a program she sees all of them, and thread #35 (9 comments,
+// about 10,000 characters) was cut. Keep the whole thread within the same 8,000 characters; past that, move to a new thread.
+const MAX_THREAD_CHARS = 8000;
 const chars = (s) => [...String(s || "")].length;
 // Each ask/reply waits for one answer of up to 800 characters (instruction v18); keep room for every answer still to come.
 const ANSWER_RESERVE = 800;
@@ -90,6 +93,9 @@ function readChars(comments, ids) {
 }
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
+  const all = (comments || []).reduce((n, c) => n + chars(c.body), 0);
+  if (all + chars(text) > MAX_THREAD_CHARS)
+    return `スレッド全体の文字数が上限 ${MAX_THREAD_CHARS} 字をこえます (いま ${all} 字 + この投稿 ${chars(text)} 字)。アムが全部を表示すると切れるので、投稿せずに止まります。新しいスレッドへ引っ越してください`;
   const used = readChars(comments, readIds(comments, text));
   const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
   return used + chars(text) + reserve > MAX_READ_CHARS
@@ -210,4 +216,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, MAX_THREAD_CHARS, planAsk, planRequest, fetchAll, run, main };

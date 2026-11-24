@@ -6,7 +6,7 @@
 // Usage: node scripts/diagnose.js <相談ID> <round> <起こしメールを送った時刻 ISO>
 const { execFileSync } = require("node:child_process");
 
-const { pendingKeys, readChars, MAX_READ_CHARS } = require("./post");
+const { pendingKeys, readChars, MAX_READ_CHARS, MAX_THREAD_CHARS } = require("./post");
 const MAX_THREAD_COMMENTS = 200, WAKE_GAP_SECONDS = 300;
 const chars = (s) => [...String(s || "")].length;
 const first = (b) => String(b || "").split(/\r?\n/)[0].trim();
@@ -47,6 +47,8 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   const ids = new Set([...pendingKeys(cs).keys()].map((k) => k.split(":")[0]).concat(id));
   const used = readChars(cs, ids);
   add("文字数", used <= MAX_READ_CHARS, `アムが全文を読む分 ${used} 字 (上限 ${MAX_READ_CHARS}、スレッド全体 ${cs.reduce((n, c) => n + chars(c.body), 0)} 字)`);
+  const total = cs.reduce((n, c) => n + chars(c.body), 0);
+  add("スレッド全体", total <= MAX_THREAD_CHARS, `${total} 字 (上限 ${MAX_THREAD_CHARS}。こえたら引っ越し)`);
   add("件数", cs.length < MAX_THREAD_COMMENTS, `${cs.length} 件`);
   add("相談の場所", pr && pr.state === "open" && /^\[AMONE-CHAT\]/.test(pr.title || ""), pr ? `${pr.state} / ${pr.title}` : "PR が読めません");
   const m = mine && /files=(\d+) sha=([0-9a-f]{40})/.exec(mine.body);

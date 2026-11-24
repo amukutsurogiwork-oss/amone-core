@@ -9,7 +9,7 @@
       "guiOperations": ["screen-check", "review", "consult", "sheet-copy-dryrun", "held-photo-read", "special", "form-create", "form-resume"],
       "notify": "github-issue",
       "priority": "normal",
-      "consultPrNumber": 35,
+      "consultPrNumber": 36,
       "chatAutoLaunchEnabled": true
     },
     { "repo": "amukutsurogiwork-oss/yuhi-colorsing-system" }

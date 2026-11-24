@@ -105,8 +105,8 @@ const OTHER = (id, n) => [
   { body: `[AMU-ANSWER] request=${id} round=1 source=1\n` + "い".repeat(n) },
 ];
 test("answered asks of other ids do not count: a long thread is fine as long as what Amu reads in full is small", () => {
-  const prev = [...OTHER("A", 3000), ...OTHER("B", 3000), ...OTHER("C", 3000)];
-  assert.strictEqual(planAsk(ASK, prev, NOW).ok, true);
+  const prev = [...OTHER("A", 1700), ...OTHER("B", 1700)];
+  assert.strictEqual(planAsk(ASK + "x".repeat(800), prev, NOW).ok, true);
 });
 test("ask is refused when what Amu reads in full (this id's comments + this post + answers to come) would exceed 8,000 characters", () => {
   const prev = [{ body: "[MONE-ASK] id=T1 lane=chat op=design round=1 status=open\n" + "あ".repeat(3500) }, { body: "[AMU-ANSWER] request=T1 round=1 source=1\n" + "い".repeat(3000) }];
@@ -150,4 +150,14 @@ test("an answer with the wrong source, or a blocked report, does not release the
   assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=999\nok" }], NOW).ok, false);
   assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101 status=blocked\nx" }], NOW).ok, false);
   assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101\nok" }], NOW).ok, true);
+});
+// 2026-11-24 22:44: Amu's fetch of thread #35 (9 comments, about 10,000 characters) was cut when shown, so she could not finish
+// the checks. When she cannot narrow the comments inside a program she sees all of them, so the whole thread also stays
+// within 8,000 characters (she read 8,930 in full in the 2026-11-24 test); past that, move to a new thread.
+test("ask is refused when the whole thread plus the new post would exceed 8,000 characters, even if everything else is answered", () => {
+  const prev = [...OTHER("A", 2500), ...OTHER("B", 1500)];
+  const r = planAsk(ASK, prev, NOW);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.reason, /引っ越/);
+  assert.strictEqual(planAsk(ASK, [...OTHER("A", 1500)], NOW).ok, true);
 });
