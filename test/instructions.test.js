@@ -188,3 +188,8 @@ test("v26: every run that knows the consultation PR posts one [AMU-STATUS] with 
   assert.ok(t.includes("通常回答もblockedも投稿しなかった実行では、対象PRが確定し投稿できる場合、終了前に[AMU-STATUS]を1件だけ投稿する"));
   assert.ok(t.includes("[AMU-STATUS]は回答・承認・依頼ではない"));
 });
+// よしひろさん (2026-11-24):「上手くいかなかったらその場で改善案を出してくれるようにアムが動くといいね」。
+test("v26: when a run stops, the status or blocked report also carries one line of improvement idea", () => {
+  const t = instruction();
+  assert.ok(t.includes("止まったときは「改善案: 」で始まる1行も足す"));
+});
