@@ -163,3 +163,12 @@ test("v24: long consultations are read only from the fixed part files at the che
     assert.ok(t.includes(w), `missing: ${w}`);
   }
 });
+// よしひろさん (2026-11-12「止まったら必ず返事を残す」, confirmed again 2026-11-24 for v24: 「GitHub にも残す」):
+// a stop on one consultation is posted once as blocked (reason class only); common failures stay on the screen.
+test("v24: a stop on one consultation is posted once to the consultation PR as blocked, with the reason class only", () => {
+  const t = instruction();
+  assert.ok(t.includes("[AMU-ANSWER] request=ID round=数字 source=元コメント番号 status=blocked"));
+  assert.ok(t.includes("同じ組のblockedがなく"));
+  assert.ok(t.includes("blockedは回答でも承認でもない"));
+  assert.ok(!t.includes("blockedの新規投稿も行わない"));
+});
