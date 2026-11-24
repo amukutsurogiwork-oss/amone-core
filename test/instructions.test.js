@@ -27,7 +27,7 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第26版】";
+const BODY_END = "【指示文の終わり 第27版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
 const LAUNCH_END = "【短い起動文の終わり】"; // v10 (2026-11-24): no version number, so a fixed instruction needs no re-paste
@@ -112,7 +112,7 @@ test("v18 and launch text v4 name no thread number; the target is the single san
   assert.ok(!/PR #\d+/.test(instruction().split("【別repoの読み取り】")[0]));
   assert.ok(!/PR #\d+/.test(launch()));
   const t = instruction();
-  assert.ok(t.includes("amukutsurogiwork-oss/ai-collab-sandboxの登録を大小文字を区別せず特定し、一意であることを確認する") && t.includes("タイトル先頭の[AMONE-CHAT]"));
+  assert.ok(t.includes("amukutsurogiwork-oss/ai-collab-sandboxを大小文字を区別せず一意に特定する") && t.includes("タイトル先頭の[AMONE-CHAT]"));
   assert.ok(t.includes("4500字") && t.includes("800字以内"));
   const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
   const blocks = doc.split("```").filter((_, i) => i % 2 === 1).map((b) => b.trim());
@@ -134,63 +134,39 @@ test("the registry's consultation PR matches the instruction and the post script
 // stopped. Comment numbers grow in posting order, so "before/after" is judged by the number; the time is not required.
 // 2026-11-24 TEST-V21-1 (v22): Amu counted a 40-character head_sha as 38 by eye and stopped. Format checks are done by a program.
 
-// v25 (2026-11-24, よしひろさん「改善策をアムにめちゃくちゃ考えてもらう」, drafted by Amu): v21-v24 stopped four times in one day
-// because Amu's tools cannot always pass what was fetched into a program. Safety conditions are kept; how they are checked may vary.
-test("v25: starts with its version, ends with its marker, and stops when the versions differ or the marker is missing", () => {
+// v27 (2026-11-24, よしひろさん「41万文字の方向性で、アムが動けるように改良して欲しい」, written by Amu, shortened by Mone to fit):
+// answer what is normal, report what is not, keep doing safe work. Fetch and judge inside one program run; only the bodies
+// of the asks being answered reach the AI. Safety ceilings, blocked once, [AMU-STATUS] and the improvement line stay.
+const has = (w) => assert.ok(instruction().includes(w), `missing: ${w}`);
+test("v27: starts with its version, ends with its marker, and stops posting when the versions differ or the marker is missing", () => {
   const t = instruction();
-  assert.ok(t.startsWith("あなたはAMONEのアムChat（第26版）"));
+  assert.ok(t.startsWith("あなたはAMONEのアムChat（第27版）"));
   assert.ok(t.endsWith(BODY_END));
-  assert.ok(t.slice(0, 200).includes("先頭と末尾の版が一致しない、または終わり印がない場合は投稿せず停止する"));
+  assert.ok(t.slice(0, 200).includes("先頭と末尾の版が一致しない、または終わり印が見えない場合は投稿せず"));
 });
-test("v25: the safety ceilings stay (one consultation PR, no money/publish/delete/merge/production, no loosening, no retry)", () => {
-  const t = instruction();
+test("v27: the safety ceilings stay (one consultation PR, no money/publish/delete/merge/production, no loosening, no retry)", () => {
   for (const w of ["書き込み先は台帳が指す相談PR1件のみ", "別repoへの書込、課金、公開、削除、Merge、本番変更、コード変更", "起動文の安全上限を本書で緩めない",
-    "台帳や共用アカウントの投稿は本人の新しい承認ではない", "失敗時の自動再試行・再送は禁止", "認証、権限、安全制限を迂回しない", "通常回答は800字以内", "次の担当"]) {
-    assert.ok(t.includes(w), `missing: ${w}`);
-  }
-  assert.ok(!/PR #\d+/.test(t.split("【別repoの読み取り】")[0]), "no fixed thread number before the cross-repo section");
+    "本人の承認を台帳や相談コメントで代用しない", "失敗した操作の再試行・再送は禁止", "認証、権限、安全制限を迂回しない", "回答全体は800字以内", "次の担当"]) has(w);
+  assert.ok(!/PR #\d+/.test(instruction().split("【別repoの読み取り】")[0]), "no fixed thread number before the cross-repo section");
 });
-test("v25: a program is used when it can be; short items may be checked directly; long comparisons and SHA length stay mechanical", () => {
-  const t = instruction();
-  assert.ok(t.includes("プログラムを実行できない、または取得結果を渡せない場合は、短い項目の直接確認を認める"));
-  assert.ok(t.includes("長文の完全一致、大量の件数集計、SHAの桁数判定は機械判定を使用する"));
-  assert.ok(t.includes("機械判定を実施していない場合は、実施したと報告しない"));
-  assert.ok(t.includes("作成時刻や付属情報は不要"));
-  assert.ok(t.includes("合計8000字以内"));
+test("v27: fetch and judge inside one program run; only the needed bodies reach the AI; short items may be checked directly without one", () => {
+  for (const w of ["GitHub接続による取得と機械判定を、可能な限り同じプログラム実行内で行う", "AIには判定結果と対象相談の必要な本文だけを渡す",
+    "作成時刻・更新時刻は不要", "プログラムが使えない場合、版表示、終わり印", "長文比較、大量集計、SHAの形式判定は機械判定を使う",
+    "実施していない機械判定を実施済みと報告しない", "相談本文は1実行合計8000字以内"]) has(w);
   assert.match(fs.readFileSync(path.join(root, "scripts/post.js"), "utf8"), /const MAX_READ_CHARS = 8000;/);
 });
-test("v25: long consultations are read only from the fixed part files at the checked head SHA, and stop on any gap", () => {
-  const t = instruction();
-  for (const w of ["consult/ID/rR/part-1.md", "Nは1〜6の整数", "各4500字以内、合計27000字以内", "SHAは正規表現で40桁の16進数と判定し", "任意のパスや別SHAを開かない"]) {
-    assert.ok(t.includes(w), `missing: ${w}`);
-  }
+test("v27: long consultations are read only from the fixed part files at the checked head SHA", () => {
+  for (const w of ["consult/ID/rR/part-1.md", "Nは1〜6の整数", "各4500字以内、合計27000字以内", "SHAは正規表現で40桁の16進数と判定し", "任意のパスや別SHAを開かない"]) has(w);
 });
 // よしひろさん (2026-11-12「止まったら必ず返事を残す」, again 2026-11-24「GitHub にも残す」).
-test("v25: a stop on one consultation is posted once to the consultation PR as blocked, with the reason class only", () => {
-  const t = instruction();
-  assert.ok(t.includes("[AMU-ANSWER] request=ID round=数字 source=元コメント番号 status=blocked"));
-  assert.ok(t.includes("同じ組のblockedがなく"));
-  assert.ok(t.includes("blockedは通常回答でも承認でもない"));
+test("v27: a stop on one consultation is posted once as blocked; it is neither an answer nor approval", () => {
+  for (const w of ["[AMU-ANSWER] request=ID round=数字 source=元コメント番号 status=blocked", "取消済み、回答済み、重複、blocked済みには投稿しない", "blockedは通常回答でも承認でもない"]) has(w);
 });
-// Mone's review of v25 (2026-11-24): the shared account means a GitHub comment can never prove the owner's permission.
-test("v25: a notice the owner allowed in Chat starts with [AMU-NOTICE], is posted once, and never stands in for approval", () => {
-  const t = instruction();
-  assert.ok(t.includes("先頭行を[AMU-NOTICE]とする"));
-  assert.ok(t.includes("同じ連絡は1回だけ投稿する"));
-  assert.ok(t.includes("連絡を本人の承認、許可、新しい依頼の代わりにしない"));
-  assert.ok(t.includes("書き込み先は台帳が指す相談PR1件のみ"));
+test("v27: an owner-allowed notice starts with [AMU-NOTICE], is posted once, and never stands in for approval", () => {
+  for (const w of ["先頭行は[AMU-NOTICE]", "台帳の相談PRに1回だけ投稿できる", "連絡は相談回答、承認、許可、新規依頼の代わりにしない"]) has(w);
 });
-// よしひろさん (2026-11-24):「一旦どんな時でも返信するように変えれない？出来れば原因探って自分達で直して欲しい」。
-// Whenever Amu runs and the consultation PR is known, she posts one short status, so Mone wakes up and can look for the cause.
-test("v26: every run that knows the consultation PR posts one [AMU-STATUS] with the three report lines, unless it posted an answer", () => {
-  const t = instruction();
-  assert.ok(t.includes("[AMU-STATUS]"));
-  assert.ok(t.includes("通常回答もblockedも投稿しなかった実行では、対象PRが確定し投稿できる場合、終了前に[AMU-STATUS]を1件だけ投稿する"));
-  assert.ok(t.includes("[AMU-STATUS]は回答・承認・依頼ではない"));
-});
-// よしひろさん (2026-11-24):「上手くいかなかったらその場で改善案を出してくれるようにアムが動くといいね」。
-test("v26: when a run stops, the status or blocked report also carries one line of improvement idea", () => {
-  const t = instruction();
-  assert.ok(t.includes("止まったときは「モネへの改善案: 」で始まる1行も足す"));
-  assert.ok(t.includes("改善案はモネが受け取り、直す"));
+// よしひろさん (2026-11-24):「一旦どんな時でも返信するように変えれない？」「上手くいかなかったらその場で改善案を出して」「改善案をモネに伝えるように」。
+test("v27: a run without an answer posts one [AMU-STATUS]; a stop adds an improvement idea for Mone; shortcut runs say whether code ran", () => {
+  for (const w of ["通常回答を1件も投稿しなかった実行は、安全な投稿条件を満たす場合だけAMU-STATUSを1件投稿する", "モネへの改善案: 原因を解消する具体案",
+    "コード実行: 使えた／使えなかった", "同じ実行のSTATUSを重ねて投稿しない", "STATUSによる再起動を禁止する", "これらを再起動のきっかけにしない"]) has(w);
 });
