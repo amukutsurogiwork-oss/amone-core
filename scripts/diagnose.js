@@ -27,9 +27,6 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
     return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round && (mine.id === undefined || String(f.source) === String(mine.id));
   }) : [];
   if (answers.some((c) => fields(first(c.body)).status !== "blocked")) return { side: "none", checks: [], action: "返事は来ています。直すことはありません" };
-  // 2026-11-24: Amu posts [AMU-STATUS] whenever she runs without answering; read it before asking よしひろさん.
-  const status = cs.filter((c) => first(c.body).startsWith("[AMU-STATUS]") && wakeSentAt && Date.parse(c.created_at) >= Date.parse(wakeSentAt)).pop();
-  if (!answers.length && status) return { side: "amu-status", checks: [], action: `アムが状態の報告を書いています: ${String(status.body).split(/\r?\n/).slice(1).join(" / ")}。モネの側で直せるものを直します` };
   if (answers.length) return { side: "amu-blocked", checks: [], action: "アムが止まった報告 (blocked) を書いています。理由の分類を読んで、モネの側で直せるものを直します" };
 
   const checks = [];
@@ -62,6 +59,9 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   add("起こしメール", wakeOk, wakeDetail);
   const bad = checks.filter((c) => !c.ok);
   if (bad.length) return { side: "mone", checks, action: `モネの側の原因: ${bad.map((c) => c.name).join("・")}。原因を直してから、1回だけ出し直します (2回続けて失敗したら止めて報告)` };
+  // 2026-11-24: Amu posts [AMU-STATUS] whenever she runs without answering; read it before asking よしひろさん.
+  const status = cs.filter((c) => first(c.body).startsWith("[AMU-STATUS]") && wakeSentAt && Date.parse(c.created_at) >= Date.parse(wakeSentAt)).pop();
+  if (status) return { side: "amu-status", checks, action: `アムが状態の報告を書いています: ${String(status.body).split(/\r?\n/).slice(1).join(" / ")}。モネの側で直せるものを直します` };
   return { side: "amu", checks, action: "モネの側は問題ありません。アムかショートカットの側です。よしひろさんに、アムの画面 (止まった報告や、動いていないか) を見てもらいます。送り直しはしません" };
 }
 
