@@ -27,7 +27,7 @@ function block(file, n) {
 const len = (s) => [...s].length;
 
 // docs/amu-chat-instructions.md (v16, the body that Amu fetches from GitHub every time): the WHOLE file is the body (no heading, no code fence).
-const BODY_END = "【指示文の終わり 第24版】";
+const BODY_END = "【指示文の終わり 第25版】";
 function instruction() { return fs.readFileSync(path.join(root, "docs/amu-chat-instructions.md"), "utf8").trim(); }
 // docs/shortcut-amu-launch.md: first block = the short launch text pasted into the shortcut; second block = old v15 body (rollback).
 const LAUNCH_END = "【短い起動文の終わり】"; // v10 (2026-11-24): no version number, so a fixed instruction needs no re-paste
@@ -43,7 +43,7 @@ test("the short launch text is short, ends with its marker, and points at the v1
   const t = launch();
   assert.ok(len(t) <= MAX_LAUNCH_CHARS, `launch text is ${len(t)} chars`);
   assert.ok(t.endsWith(LAUNCH_END));
-  assert.ok(t.includes("docs/amu-chat-instructions.md") && t.includes("main") && t.includes("【指示文の終わり 第N版】の版の一致をプログラムで照合"));
+  assert.ok(t.includes("docs/amu-chat-instructions.md") && t.includes("main") && t.includes("【指示文の終わり 第N版】の版一致を確認"));
   // fail-closed and safety ceilings live in the launch text itself
   assert.ok(t.includes("停止") && t.includes("台帳が指す相談PR1件のみ") && t.includes("ai-collab-sandbox") && t.includes("個別承認") && t.includes("変更できない"));
   // v5: the only extra read is the fixed part files at the thread head (Amu, SLOTS-20261122 round 2)
@@ -112,7 +112,7 @@ test("v18 and launch text v4 name no thread number; the target is the single san
   assert.ok(!/PR #\d+/.test(instruction().split("【別repoの読み取り】")[0]));
   assert.ok(!/PR #\d+/.test(launch()));
   const t = instruction();
-  assert.ok(t.includes("amukutsurogiwork-oss/ai-collab-sandboxの登録が一意であることをプログラムで確認する") && t.includes("タイトル先頭の[AMONE-CHAT]"));
+  assert.ok(t.includes("amukutsurogiwork-oss/ai-collab-sandboxの登録を大小文字を区別せず特定し、一意であることを確認する") && t.includes("タイトル先頭の[AMONE-CHAT]"));
   assert.ok(t.includes("4500字") && t.includes("800字以内"));
   const doc = fs.readFileSync(path.join(root, "docs/shortcut-amu-launch.md"), "utf8");
   const blocks = doc.split("```").filter((_, i) => i % 2 === 1).map((b) => b.trim());
@@ -134,41 +134,49 @@ test("the registry's consultation PR matches the instruction and the post script
 // stopped. Comment numbers grow in posting order, so "before/after" is judged by the number; the time is not required.
 // 2026-11-24 TEST-V21-1 (v22): Amu counted a 40-character head_sha as 38 by eye and stopped. Format checks are done by a program.
 
-// v24 (2026-11-24, よしひろさん「不要なチェック全部外して」, drafted by Amu): the body was rewritten short. It stopped three
-// times in one day on checks done by eye (creation time, a 40-character SHA counted as 38, exact body match). What stays:
-test("v24: starts with its version, ends with its marker, and stops when the marker is missing or the versions differ", () => {
+// v25 (2026-11-24, よしひろさん「改善策をアムにめちゃくちゃ考えてもらう」, drafted by Amu): v21-v24 stopped four times in one day
+// because Amu's tools cannot always pass what was fetched into a program. Safety conditions are kept; how they are checked may vary.
+test("v25: starts with its version, ends with its marker, and stops when the versions differ or the marker is missing", () => {
   const t = instruction();
-  assert.ok(t.startsWith("あなたはAMONEのアムChat（第24版）"));
+  assert.ok(t.startsWith("あなたはAMONEのアムChat（第25版）"));
   assert.ok(t.endsWith(BODY_END));
-  assert.ok(t.slice(0, 200).includes("末尾の終わり印が見えない、または先頭と末尾の版が一致しない場合は投稿せず停止する"));
+  assert.ok(t.slice(0, 200).includes("先頭と末尾の版が一致しない、または終わり印がない場合は投稿せず停止する"));
 });
-test("v24: the safety ceilings stay (one consultation PR, no money/publish/delete/merge/production, no loosening, no retry)", () => {
+test("v25: the safety ceilings stay (one consultation PR, no money/publish/delete/merge/production, no loosening, no retry)", () => {
   const t = instruction();
-  for (const w of ["書き込み先は台帳が指す相談PR1件のみ", "別repoへの書込・課金・公開・削除・Merge・本番変更は禁止", "起動文の安全上限を本書で緩めない",
-    "台帳の登録や共用アカウントの投稿は本人の新しい承認ではない", "失敗時の自動再試行・再送は禁止", "認証や安全制限を迂回しない", "通常回答は800字以内", "次の担当"]) {
+  for (const w of ["書き込み先は台帳が指す相談PR1件のみ", "別repoへの書込、課金、公開、削除、Merge、本番変更、コード変更", "起動文の安全上限を本書で緩めない",
+    "台帳や共用アカウントの投稿は本人の新しい承認ではない", "失敗時の自動再試行・再送は禁止", "認証、権限、安全制限を迂回しない", "通常回答は800字以内", "次の担当"]) {
     assert.ok(t.includes(w), `missing: ${w}`);
   }
   assert.ok(!/PR #\d+/.test(t.split("【別repoの読み取り】")[0]), "no fixed thread number before the cross-repo section");
 });
-test("v24: checks are done by a program, not by eye; only the asks being answered are read in full, within 8000 characters", () => {
+test("v25: a program is used when it can be; short items may be checked directly; long comparisons and SHA length stay mechanical", () => {
   const t = instruction();
-  assert.ok(t.includes("AIの目視による件数集計、桁数確認、長文比較で代用しない"));
+  assert.ok(t.includes("プログラムを実行できない、または取得結果を渡せない場合は、短い項目の直接確認を認める"));
+  assert.ok(t.includes("長文の完全一致、大量の件数集計、SHAの桁数判定は機械判定を使用する"));
+  assert.ok(t.includes("機械判定を実施していない場合は、実施したと報告しない"));
   assert.ok(t.includes("作成時刻や付属情報は不要"));
-  assert.ok(t.includes("現回を含め合計8000字以内"));
+  assert.ok(t.includes("合計8000字以内"));
   assert.match(fs.readFileSync(path.join(root, "scripts/post.js"), "utf8"), /const MAX_READ_CHARS = 8000;/);
 });
-test("v24: long consultations are read only from the fixed part files at the checked head SHA, and stop on any gap", () => {
+test("v25: long consultations are read only from the fixed part files at the checked head SHA, and stop on any gap", () => {
   const t = instruction();
   for (const w of ["consult/ID/rR/part-1.md", "Nは1〜6の整数", "各4500字以内、合計27000字以内", "SHAは正規表現で40桁の16進数と判定し", "任意のパスや別SHAを開かない"]) {
     assert.ok(t.includes(w), `missing: ${w}`);
   }
 });
-// よしひろさん (2026-11-12「止まったら必ず返事を残す」, confirmed again 2026-11-24 for v24: 「GitHub にも残す」):
-// a stop on one consultation is posted once as blocked (reason class only); common failures stay on the screen.
-test("v24: a stop on one consultation is posted once to the consultation PR as blocked, with the reason class only", () => {
+// よしひろさん (2026-11-12「止まったら必ず返事を残す」, again 2026-11-24「GitHub にも残す」).
+test("v25: a stop on one consultation is posted once to the consultation PR as blocked, with the reason class only", () => {
   const t = instruction();
   assert.ok(t.includes("[AMU-ANSWER] request=ID round=数字 source=元コメント番号 status=blocked"));
   assert.ok(t.includes("同じ組のblockedがなく"));
-  assert.ok(t.includes("blockedは回答でも承認でもない"));
-  assert.ok(!t.includes("blockedの新規投稿も行わない"));
+  assert.ok(t.includes("blockedは通常回答でも承認でもない"));
+});
+// Mone's review of v25 (2026-11-24): the shared account means a GitHub comment can never prove the owner's permission.
+test("v25: a notice the owner allowed in Chat starts with [AMU-NOTICE], is posted once, and never stands in for approval", () => {
+  const t = instruction();
+  assert.ok(t.includes("先頭行を[AMU-NOTICE]とする"));
+  assert.ok(t.includes("同じ連絡は1回だけ投稿する"));
+  assert.ok(t.includes("連絡を本人の承認、許可、新しい依頼の代わりにしない"));
+  assert.ok(t.includes("書き込み先は台帳が指す相談PR1件のみ"));
 });
