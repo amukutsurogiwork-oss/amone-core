@@ -151,20 +151,10 @@ test("an answer with the wrong source, or a blocked report, does not release the
   assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101 status=blocked\nx" }], NOW).ok, false);
   assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101\nok" }], NOW).ok, true);
 });
-// 2026-11-24 22:44: Amu's fetch of thread #35 (9 comments, about 10,000 characters) was cut when shown, so she could not finish
-// the checks. When she cannot narrow the comments inside a program she sees all of them, so the whole thread also stays
-// within 8,000 characters (she read 8,930 in full in the 2026-11-24 test); past that, move to a new thread.
-test("ask is refused when the whole thread plus the new post would exceed 8,000 characters, even if everything else is answered", () => {
-  const prev = [...OTHER("A", 2500), ...OTHER("B", 1500)];
-  const r = planAsk(ASK, prev, NOW);
-  assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /引っ越/);
-  assert.strictEqual(planAsk(ASK, [...OTHER("A", 1500)], NOW).ok, true);
-});
-// Codex P2 on #102: the whole-thread limit must also keep room for the answers still to come (800 characters each).
-test("the whole-thread limit keeps room for this post's answer and other pending answers", () => {
-  const prev = [...OTHER("A", 3650), { body: "x".repeat(70) }]; // 7,450 + headers, all answered
-  const r = planAsk(ASK, prev, NOW);
-  assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /引っ越/);
+// 2026-11-24 23:31 (TEST-V27-1): from the shortcut too, Amu fetched and judged inside one program run, the way she read
+// 410,000 characters of PR #23. よしひろさん chose「字数の上限をなくす」: the whole thread has no character limit; only what
+// she reads in full (8,000) and the comment count (200) are limited.
+test("a long thread of answered asks does not stop a new ask (no whole-thread character limit)", () => {
+  const prev = [...OTHER("A", 20000), ...OTHER("B", 20000), ...OTHER("C", 20000)];
+  assert.strictEqual(planAsk(ASK, prev, NOW).ok, true);
 });
