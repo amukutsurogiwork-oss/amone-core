@@ -88,10 +88,22 @@ function readChars(comments, ids) {
   }
   return n;
 }
+// Room for every answer still to come: 800 each, or limit=N when the first ask of that id set one (design asks, up to 4000).
+function limitOf(comments, id, text) {
+  const asks = [...(comments || []).map((c) => c.body || ""), text || ""].map(firstLine)
+    .filter((h) => h.startsWith("[MONE-ASK]") && parseFields(h).id === id && parseFields(h).status !== "cancel");
+  const n = asks.length ? Number(parseFields(asks[0]).limit) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : ANSWER_RESERVE;
+}
+function answerReserve(comments, text) {
+  let r = 0;
+  for (const k of pendingKeys(comments).keys()) r += limitOf(comments, k.split(":")[0]);
+  return r + limitOf(comments, parseFields(firstLine(text)).id, text);
+}
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
   const used = readChars(comments, readIds(comments, text));
-  const reserve = (pendingAnswers(comments) + 1) * ANSWER_RESERVE;
+  const reserve = answerReserve(comments, text);
   return used + chars(text) + reserve > MAX_READ_CHARS
     ? `アムが全文を読む分 (答える相談と、その前の回のやり取り) が上限 ${MAX_READ_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。投稿せずに止まります。相談を短くするか、長い相談は post-long.js で分けてください`
     : null;
