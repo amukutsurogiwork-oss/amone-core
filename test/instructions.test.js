@@ -184,3 +184,9 @@ test("v27: one run answers only the oldest unanswered ask; before posting only t
   has("初回相談の見出しにlimit=N（op=designのみ、Nは4000以下）があれば、その相談の回答はN字以内");
   assert.ok(!instruction().includes("最大3件処理する"));
 });
+// 2026-11-26 8:20: from the shortcut Amu fetched the 6 part files of the oldest ask, but showing them at once was cut, and she
+// ended without posting a status. Read the parts one file at a time; before ending on a stop, post the status first.
+test("v27: part files are fetched and read one at a time; a run that stops posts its status before ending", () => {
+  has("1ファイルずつ取得・表示して読む（一度に複数を表示しない）");
+  has("処理を中止するときは、終了前にまずAMU-STATUSを投稿する");
+});
