@@ -176,3 +176,11 @@ test("v27: as long as safety holds, one run goes on from fetching to answering, 
   has("安全条件を満たす限り、取得から回答・投稿・結果確認まで1回で続け、途中経過の報告で終えない");
   has("未実施の確認は実行し、停止理由にしない");
 });
+// 2026-11-26 8:13: from the shortcut Amu fetched all 11 comments, found 2 unanswered asks, and ended before checking and answering.
+// One run now handles only the oldest ask, and before posting re-fetches only the ledger and the thread.
+test("v27: one run answers only the oldest unanswered ask; before posting only the ledger and the thread are fetched again", () => {
+  has("1回の実行では、有効な未回答相談のうち最も古い1件だけを処理する");
+  has("正本は起動時の確認で足り、投稿直前に再取得しない");
+  has("初回相談の見出しにlimit=N（op=designのみ、Nは4000以下）があれば、その相談の回答はN字以内");
+  assert.ok(!instruction().includes("最大3件処理する"));
+});

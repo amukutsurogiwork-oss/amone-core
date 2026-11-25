@@ -158,3 +158,16 @@ test("a long thread of answered asks does not stop a new ask (no whole-thread ch
   const prev = [...OTHER("A", 20000), ...OTHER("B", 20000), ...OTHER("C", 20000)];
   assert.strictEqual(planAsk(ASK, prev, NOW).ok, true);
 });
+// アムの設計 (Astra, 2026-11-25/26): a design consultation may allow a longer answer, up to 4,000 characters, with limit=N.
+// The budget then keeps room for that answer instead of 800.
+test("a design ask with limit=N keeps room for an answer of N characters", () => {
+  const { checkAsk } = require("../scripts/check-ask");
+  const d = (n) => `[MONE-ASK] id=D1 lane=chat op=design round=1 status=open limit=${n}\n設計の相談`;
+  assert.strictEqual(checkAsk(d(4000)), null);
+  assert.match(checkAsk(d(4001)), /4000/);
+  assert.match(checkAsk("[MONE-ASK] id=D1 lane=chat op=review round=1 status=open limit=2000\nx"), /design/);
+  // 3,300 already read + this post + 4,000 for its answer > 8,000: refused; with the normal 800 it fits
+  const prev = [{ body: "[MONE-ASK] id=P lane=chat op=design round=1 status=open\n" + "y".repeat(3300) }];
+  assert.strictEqual(planAsk(d(4000).replace("D1", "P2"), prev, NOW).ok, false);
+  assert.strictEqual(planAsk("[MONE-ASK] id=P2 lane=chat op=design round=1 status=open\n設計の相談", prev, NOW).ok, true);
+});

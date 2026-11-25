@@ -17,6 +17,7 @@ test("the numbers in CLAUDE.md are the ones the code and tests enforce", () => {
   assert.match(read("scripts/post.js"), /const MAX_READ_CHARS = 8000;/);
   assert.ok(!/MAX_THREAD_CHARS/.test(read("scripts/post.js")));
   assert.ok(read("CLAUDE.md").includes("スレッド全体の字数には上限を置かない"));
+  assert.ok(read("CLAUDE.md").includes("**4,000字まで**") && /Number\(f\.limit\) > 4000/.test(read("scripts/check-ask.js")));
   assert.ok(read("CLAUDE.md").includes("8,000字まで"));
   assert.match(read("test/instructions.test.js"), /const MAX_INSTRUCTION_CHARS = 4500;/);
   assert.match(read("test/instructions.test.js"), /const MAX_LAUNCH_CHARS = 500;/);
