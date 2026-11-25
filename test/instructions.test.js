@@ -190,3 +190,8 @@ test("v27: part files are fetched and read one at a time; a run that stops posts
   has("1ファイルずつ取得・表示して読む（一度に複数を表示しない）");
   has("処理を中止するときは、終了前にまずAMU-STATUSを投稿する");
 });
+// 2026-11-26 朝 (アムの [AMU-NOTICE] NOTICE-FILTER-20261126): PR オブジェクト全体を出したため差分と HTML まで展開され、
+// 約41,000トークンで出力が切れて、回答も STATUS も出なかった。PR は必要な項目だけ抜き出す。
+test("v27: from the PR only the number, state, title (and head_sha when needed) are extracted; the whole PR, diff and HTML are never printed", () => {
+  for (const w of ["PRは番号・状態・タイトルと必要時のhead_shaだけ抽出する", "PR全体・差分・HTMLは出力・展開しない"]) has(w);
+});
