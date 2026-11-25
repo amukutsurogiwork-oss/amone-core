@@ -18,7 +18,7 @@ test("each consultation shows its stage: waiting, answered, blocked, cancelled",
     c(7, "[MONE-ASK] id=D status=cancel\n取消", T(7)),
   ]);
   const by = Object.fromEntries(rows.map((r) => [r.id, r.stage]));
-  assert.deepStrictEqual(by, { A: "答えあり", B: "答え待ち", C: "止まった報告", D: "取り消し" });
+  assert.deepStrictEqual(by, { A: "モネの判断待ち", B: "答え待ち", C: "止まった報告", D: "取り消し" });
 });
 test("the latest round is shown, and an answer counts only with the matching source", () => {
   const rows = statusRows([
@@ -33,4 +33,16 @@ test("the latest round is shown, and an answer counts only with the matching sou
 test("a long consultation shows how many files it has", () => {
   const rows = statusRows([c(1, `[MONE-ASK] id=L lane=chat op=review round=1 status=open\n長文の相談です。files=3 sha=${"a".repeat(40)} path=consult/L/r1/`, T(1))]);
   assert.match(rows[0].detail, /ファイル3つ/);
+});
+// アムの設計 (2026-11-25/26, Astra): after Amu answers it is Mone's turn; a consultation is over only when Mone leaves a
+// closing note that names the answer she judged: [MONE-NOTE] id=ID status=closed answer=<answer comment number>.
+test("after an answer it is Mone's turn, and only a closing note naming that answer ends the consultation", () => {
+  const base = [
+    c(1, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\nx", T(1)),
+    c(2, "[AMU-ANSWER] request=A round=1 source=1\n反論", T(2)),
+  ];
+  assert.strictEqual(statusRows(base)[0].stage, "モネの判断待ち");
+  assert.strictEqual(statusRows([...base, c(3, "[MONE-NOTE] id=A status=closed answer=99\n判断と理由", T(3))])[0].stage, "モネの判断待ち");
+  assert.strictEqual(statusRows([...base, c(3, "[MONE-NOTE] id=A\n読みました", T(3))])[0].stage, "モネの判断待ち");
+  assert.strictEqual(statusRows([...base, c(3, "[MONE-NOTE] id=A status=closed answer=2\n採った指摘と理由", T(3))])[0].stage, "おしまい");
 });

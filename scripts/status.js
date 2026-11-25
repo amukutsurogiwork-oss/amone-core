@@ -30,8 +30,15 @@ function statusRows(comments) {
     });
     const m = /files=(\d+) sha=/.exec(last.c.body);
     const detail = [m ? `ファイル${m[1]}つ` : "", `投稿 ${last.c.created_at || "?"}`].filter(Boolean).join(" / ");
+    const normal = answers.filter((a) => fields(first(a.body)).status !== "blocked");
+    // アムの設計 (Astra, 2026-11-26): after an answer it is Mone's turn; only a closing note naming that answer ends it.
+    const closed = normal.some((a) => (comments || []).some((n) => {
+      const h = first(n.body), f = fields(h);
+      return h.startsWith("[MONE-NOTE]") && f.id === e.id && f.status === "closed" && a.id !== undefined && String(f.answer) === String(a.id);
+    }));
     const stage = e.cancelled ? "取り消し"
-      : answers.some((a) => fields(first(a.body)).status !== "blocked") ? "答えあり"
+      : closed ? "おしまい"
+      : normal.length ? "モネの判断待ち"
       : answers.length ? "止まった報告"
       : "答え待ち";
     rows.push({ id: e.id, round: last.round, stage, detail });
