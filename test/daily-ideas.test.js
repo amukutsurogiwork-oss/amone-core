@@ -69,3 +69,11 @@ test("parseArgs: --days defaults to 14 and rejects nonsense", () => {
   assert.equal(parseArgs(["--days", "3"]).days, 3);
   assert.equal(parseArgs(["--days", "0"]).error !== undefined, true);
 });
+
+// Codex (PR #117): an answer received by mail and recorded by Monet ([MONE-RECORD]) counts like [AMU-ANSWER].
+test("a mailed answer recorded as [MONE-RECORD] is read for the headings", () => {
+  const rec = { body: "[MONE-RECORD] request=DAILY-IDEA-20261119 round=1 source=1 tag=0123456789abcdef\n通常Chatの返答をモネがメールで受領しました。以下は返答の全文です。\n\n1. 案D\n2. 案E", created_at: "x" };
+  const days = collectIdeas([ask("20261119"), rec], { days: 14, now: NOW });
+  assert.equal(days[0].answered, true);
+  assert.deepEqual(days[0].headings, ["案D", "案E"]);
+});

@@ -26,7 +26,7 @@ function statusRows(comments) {
     if (!last) { rows.push({ id: e.id, round: 0, stage: "取り消し", detail: "" }); continue; }
     const answers = (comments || []).filter((c) => {
       const h = first(c.body), f = fields(h);
-      return h.startsWith("[AMU-ANSWER]") && f.request === e.id && Number(f.round) === last.round && (last.c.id === undefined || String(f.source) === String(last.c.id));
+      return (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && f.request === e.id && Number(f.round) === last.round && (last.c.id === undefined || String(f.source) === String(last.c.id));
     });
     const m = /files=(\d+) sha=/.exec(last.c.body);
     const detail = [m ? `ファイル${m[1]}つ` : "", `投稿 ${last.c.created_at || "?"}`].filter(Boolean).join(" / ");
