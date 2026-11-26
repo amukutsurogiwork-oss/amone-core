@@ -150,7 +150,7 @@ test("v27: the safety ceilings stay (one consultation PR, no money/publish/delet
   assert.ok(!/PR #\d+/.test(instruction().split("【別repoの読み取り】")[0]), "no fixed thread number before the cross-repo section");
 });
 test("v27: fetch and judge inside one program run; only the needed bodies reach the AI; short items may be checked directly without one", () => {
-  for (const w of ["GitHub接続による取得と機械判定を、可能な限り同じプログラム実行内で行う", "AIには判定結果と対象相談の必要な本文だけを渡す",
+  for (const w of ["AIには判定結果と対象相談の必要な本文だけを渡す",
     "作成時刻・更新時刻は不要", "プログラムが使えない場合、版表示、終わり印", "長文比較、大量集計、SHAの形式判定は機械判定を使う",
     "実施していない機械判定を実施済みと報告しない", "相談本文は1実行合計8000字以内"]) has(w);
   assert.match(fs.readFileSync(path.join(root, "scripts/post.js"), "utf8"), /const MAX_READ_CHARS = 8000;/);
@@ -213,4 +213,12 @@ test("v27: the pre-post check is one short program run over a fresh fetch, keepi
     // Codex (PR #112, 2nd): a duplicate ask with the same ID (or same ID and round) added meanwhile must stop the post
     "同じIDの初回相談、同じID・roundの追加相談が重複していない"]) has(w);
   assert.ok(!instruction().includes("SHA-256照合値"), "the hash hand-over between runs is dropped (one run does it all)");
+});
+// 2026-11-26 13:12 (AMU-PIPE-1、よしひろさんの画面): 9秒の思考で、台帳・PR・コメント32件を取ったところで返事を終えた
+// (相談の本文は未取得)。アム自身の改善案は毎回「取得・判定・本文の取り出しを同じ処理で完結させる」。
+// 「可能な限り」をやめ、起動直後の1回のプログラムで、取得から本文・資料の取り出しまで終える。取得結果の報告で返事を終えない。
+test("v27: one program run right after launch fetches, judges and extracts the target ask and its attachments; no stop after fetching", () => {
+  has("起動直後の1回のプログラム実行で、台帳・対象PR・全会話コメントの取得、判定、対象相談の本文と追加資料の取り出しまでを終える");
+  has("取得や判定の結果を報告して返事を終えない。回答の作成と投稿まで続ける");
+  assert.ok(!instruction().includes("可能な限り同じプログラム実行内"), "no more 'as far as possible'");
 });
