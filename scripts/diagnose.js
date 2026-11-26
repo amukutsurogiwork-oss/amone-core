@@ -24,7 +24,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   // an answer counts only when its source is this consultation comment's own number (ID, round and source must all match)
   const answers = mine ? cs.filter((c) => {
     const h = first(c.body), f = fields(h);
-    return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round && (mine.id === undefined || String(f.source) === String(mine.id));
+    return (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && f.request === id && Number(f.round) === round && (mine.id === undefined || String(f.source) === String(mine.id));
   }) : [];
   if (answers.some((c) => fields(first(c.body)).status !== "blocked")) return { side: "none", checks: [], action: "返事は来ています。直すことはありません" };
   if (answers.length) return { side: "amu-blocked", checks: [], action: "アムが止まった報告 (blocked) を書いています。理由の分類を読んで、モネの側で直せるものを直します" };
@@ -36,7 +36,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   if (round > 1 && mine) {
     // Amu answers a reply only after one normal answer to the round before it, and only when the reply came after that answer.
     const initial = cs.some((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[MONE-ASK]") && f.id === id && f.status !== "cancel"; });
-    const prev = cs.filter((c) => { const h = first(c.body), f = fields(h); return h.startsWith("[AMU-ANSWER]") && f.request === id && Number(f.round) === round - 1 && f.status !== "blocked"; });
+    const prev = cs.filter((c) => { const h = first(c.body), f = fields(h); return (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && f.request === id && Number(f.round) === round - 1 && f.status !== "blocked"; });
     const after = prev.length === 1 && Date.parse(mine.created_at) > Date.parse(prev[0].created_at);
     add("順番", initial && after, !initial ? "最初の相談 (round=1) がありません" : prev.length !== 1 ? `round=${round - 1} の通常の答えが ${prev.length} 件です (1件必要)` : after ? "OK" : `round=${round} の書き込みが、round=${round - 1} の答えより前です`);
   }

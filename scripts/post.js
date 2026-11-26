@@ -61,7 +61,7 @@ function pendingKeys(comments) {
   // as in the instruction, diagnose.js and status.js. A comment without a number (tests of older code) matches any source.
   for (const c of comments || []) {
     const head = firstLine(c.body || ""), f = parseFields(head), key = `${f.request}:${f.round}`;
-    if (!head.startsWith("[AMU-ANSWER]") || f.status === "blocked" || !want.has(key)) continue;
+    if (!(head.startsWith("[AMU-ANSWER]") || head.startsWith("[MONE-RECORD]")) || f.status === "blocked" || !want.has(key)) continue;
     const askId = want.get(key).id;
     if (askId === undefined || String(askId) === String(f.source)) want.delete(key);
   }
@@ -83,7 +83,7 @@ function readChars(comments, ids) {
   let n = 0;
   for (const c of comments || []) {
     const head = firstLine(c.body || ""), f = parseFields(head);
-    const id = head.startsWith("[AMU-ANSWER]") ? f.request : (head.startsWith("[MONE-ASK]") || head.startsWith("[MONE-REPLY]")) ? f.id : null;
+    const id = (head.startsWith("[AMU-ANSWER]") || head.startsWith("[MONE-RECORD]")) ? f.request : (head.startsWith("[MONE-ASK]") || head.startsWith("[MONE-REPLY]")) ? f.id : null;
     if (id && ids.has(id)) n += chars(c.body);
   }
   return n;

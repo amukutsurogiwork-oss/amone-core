@@ -53,7 +53,7 @@ function buildPacket(comments, readFile) {
     for (const c of comments) {
       if (c.id === t.c.id) break;
       const h = firstLine(c.body), f = fields(h);
-      const same = (h.startsWith("[MONE-ASK]") || h.startsWith("[MONE-REPLY]")) ? f.id === t.id : h.startsWith("[AMU-ANSWER]") && f.request === t.id && f.status !== "blocked";
+      const same = (h.startsWith("[MONE-ASK]") || h.startsWith("[MONE-REPLY]")) ? f.id === t.id : (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && f.request === t.id && f.status !== "blocked";
       if (same) out.push(`【前の回 comment=${c.id}】`, String(c.body));
     }
   }
