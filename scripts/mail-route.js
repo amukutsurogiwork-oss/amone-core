@@ -73,7 +73,8 @@ function planRecord(comments, tag) {
 function recordBody({ request, round, source, tag }, answer) {
   return `[MONE-RECORD] request=${request} round=${round} source=${source} tag=${tag}\n`
     + "通常Chatの返答をモネがメールで受領しました。以下は返答の全文です。\n\n"
-    + String(answer).replace(/\s+$/, "") + "\n\n次の担当: モネ (採否と改訂の検討)\n";
+    // a quoted "@codex" would call Codex on the thread (2026-11-26, CUSTOM-INST-1): write the at sign full-width
+    + String(answer).replace(/\s+$/, "").replace(/@(codex)/gi, "＠$1") + "\n\n次の担当: モネ (採否と改訂の検討)\n";
 }
 
 module.exports = { isAnswerHead, tagOf, newToken, openSend, planSend, planRecord, recordBody };
