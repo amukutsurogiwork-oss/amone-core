@@ -55,7 +55,7 @@ function collectIdeas(comments, { days = 14, now = new Date() } = {}) {
     if (head.startsWith("[MONE-ASK]")) {
       const date = dateOf(f.id);
       if (date && date >= limit) get(date).asked = true;
-    } else if (head.startsWith("[AMU-ANSWER]")) {
+    } else if (head.startsWith("[AMU-ANSWER]") || head.startsWith("[MONE-RECORD]")) {
       const date = dateOf(f.request);
       if (!date || date < limit || f.status === "blocked") continue;
       const d = get(date);
