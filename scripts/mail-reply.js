@@ -25,6 +25,9 @@ function normalizeReply(raw, kind) {
   if (kind === "html") {
     s = s.replace(/<br\s*\/?>/gi, "\n");
     if (/<[a-zA-Z/!][^>]*>/.test(s)) return { ok: false, reason: "判定できない形式です (改行以外のタグがあります)。保留します" };
+    // A named reference we do not know is held, not compared as changed text (Codex on PR #115).
+    const unknown = (s.match(/&([a-zA-Z]+);/g) || []).find((m) => !(m.slice(1, -1) in NAMED));
+    if (unknown) return { ok: false, reason: `読めない文字参照 (${unknown}) があります。保留します` };
     s = decodeRefs(s);
   }
   return { ok: true, text: s.replace(/\r\n?/g, "\n") };

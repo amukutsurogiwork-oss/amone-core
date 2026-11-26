@@ -48,3 +48,11 @@ test("html: br forms and character references are restored; other markup is held
   assert.equal(held.ok, false);
   assert.match(held.reason, /判定できない/);
 });
+
+// Codex (PR #115): an HTML reference we do not decode (&copy; &mdash; &hellip; ...) must not be reported as a content
+// difference. Hold it instead of guessing.
+test("html: an unknown named character reference is held, not compared", () => {
+  const r = normalizeReply("&copy; 2026 &mdash; done&hellip;", "html");
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /読めない文字参照/);
+});
