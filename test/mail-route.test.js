@@ -62,3 +62,11 @@ test("a [MONE-RECORD] counts as an answer everywhere an [AMU-ANSWER] does", () =
   assert.equal(pendingKeys([ask]).size, 1);
   assert.equal(pendingKeys([ask, rec]).size, 0);
 });
+
+// 2026-11-26 (CUSTOM-INST-1): an answer that quoted "@codex review" called Codex on the consultation thread when recorded.
+// The record keeps the answer whole but writes the at sign full-width, as check-ask.js asks of Monet's own posts.
+test("a recorded answer never calls Codex: a half-width @codex is written with a full-width at sign", () => {
+  const b = recordBody({ request: "A", round: 1, source: 10, tag: "t" }, "PR に「@codex review」とコメントする。@Codex も。");
+  assert.ok(!/@codex/i.test(b));
+  assert.ok(b.includes("「＠codex review」") && b.includes("＠Codex"));
+});
