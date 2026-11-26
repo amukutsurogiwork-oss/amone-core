@@ -67,3 +67,14 @@ test("html: numeric references follow HTML rules or are held", () => {
     assert.match(r.reason, /読めない文字参照/);
   }
 });
+
+// Codex (PR #115, 3rd): names inherited from Object.prototype (&constructor; &toString;) are not references we know.
+test("html: inherited names like &constructor; are held, not decoded", () => {
+  // "&__proto__;" is not a reference at all (names have letters only), so it stays as plain text.
+  assert.deepEqual(normalizeReply("x&__proto__;y", "html"), { ok: true, text: "x&__proto__;y" });
+  for (const bad of ["&constructor;", "&toString;", "&hasOwnProperty;"]) {
+    const r = normalizeReply(`x${bad}y`, "html");
+    assert.equal(r.ok, false, bad);
+    assert.match(r.reason, /読めない文字参照/);
+  }
+});

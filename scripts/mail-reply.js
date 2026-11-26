@@ -15,7 +15,7 @@ function decodeRefs(s) {
       const cp = r[1] === "x" || r[1] === "X" ? parseInt(r.slice(2), 16) : parseInt(r.slice(1), 10);
       return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
     }
-    return r in NAMED ? NAMED[r] : m;
+    return Object.hasOwn(NAMED, r) ? NAMED[r] : m;
   });
 }
 
@@ -26,7 +26,7 @@ function normalizeReply(raw, kind) {
     s = s.replace(/<br\s*\/?>/gi, "\n");
     if (/<[a-zA-Z/!][^>]*>/.test(s)) return { ok: false, reason: "判定できない形式です (改行以外のタグがあります)。保留します" };
     // A named reference we do not know is held, not compared as changed text (Codex on PR #115).
-    const unknown = (s.match(/&([a-zA-Z]+);/g) || []).find((m) => !(m.slice(1, -1) in NAMED))
+    const unknown = (s.match(/&([a-zA-Z]+);/g) || []).find((m) => !Object.hasOwn(NAMED, m.slice(1, -1)))
       // numeric references whose HTML meaning is not the plain code point are held too (Codex on PR #115)
       || (s.match(/&#(x[0-9a-fA-F]+|X[0-9a-fA-F]+|\d+);/g) || []).find((m) => {
         const r = m.slice(2, -1);
