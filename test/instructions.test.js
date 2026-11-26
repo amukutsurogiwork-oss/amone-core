@@ -168,7 +168,7 @@ test("v27: an owner-allowed notice starts with [AMU-NOTICE], is posted once, and
 // よしひろさん (2026-11-24):「一旦どんな時でも返信するように変えれない？」「上手くいかなかったらその場で改善案を出して」「改善案をモネに伝えるように」。
 test("v27: a run without an answer posts one [AMU-STATUS]; a stop adds an improvement idea for Mone; shortcut runs say whether code ran", () => {
   for (const w of ["通常回答を1件も投稿しなかった実行は、安全な投稿条件を満たす場合だけAMU-STATUSを1件投稿する", "モネへの改善案: 原因を解消する具体案",
-    "コード実行: 使えた／使えなかった", "同じ実行のSTATUSを重ねて投稿しない", "STATUSによる再起動を禁止する", "これらを再起動のきっかけにしない"]) has(w);
+    "コード実行: 使えた／使えなかった", "同じ実行のSTATUSを重ねて投稿しない", "STATUSによる再起動を禁止する", "後二者は重複確認にだけ使い、再起動しない"]) has(w);
 });
 // 2026-11-24 23:47 (READ-TEST-UNDERSTAND): Amu found the unanswered ask but ended mid-way without answering or posting a status,
 // with no safety problem (her own notice). Her proposal: keep going to the end while the safety conditions hold.
@@ -194,4 +194,10 @@ test("v27: part files are fetched and read one at a time; a run that stops posts
 // 約41,000トークンで出力が切れて、回答も STATUS も出なかった。PR は必要な項目だけ抜き出す。
 test("v27: from the PR only the number, state, title (and head_sha when needed) are extracted; the whole PR, diff and HTML are never printed", () => {
   for (const w of ["PRは番号・状態・タイトルと必要時のhead_shaだけ抽出する", "PR全体・差分・HTMLは出力・展開しない"]) has(w);
+});
+// 2026-11-26 アストラの設計 (NOTICE-ASTRA-LONGFIX-20261126): 長い資料は、問いを先に読み、各部を一度ずつ読み、
+// 根拠の部番号と因果・反例を手元に残す。PR や資料の全文を二度出さない (余分な出力が止まる第一候補)。
+test("v27: long attachments are read with the question first, each part once, keeping part numbers, causes and counterexamples", () => {
+  has("問いを先に読み、各部の本文は一度ずつ読み、根拠の部番号と因果・反例を手元に残す");
+  has("自由文・Work依頼・AMU-STATUS・AMU-NOTICEは相談対象外。後二者は重複確認にだけ使い、再起動しない");
 });
