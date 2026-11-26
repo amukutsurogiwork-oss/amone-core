@@ -119,3 +119,35 @@ test("a reply with another token is held, and a dry run posts nothing", () => {
   assert.equal(cli(["release"], f.deps, f.log), 0);
   assert.match(f.posted.pop(), /^\[MONE-SEND\] request=A round=1 source=10 tag=\S+ status=release\n/);
 });
+
+// Codex (PR #118): the files of an earlier round sent by post-long.js must be in the mail too (Chat cannot fetch them).
+test("the files pinned to earlier rounds are put in, each after its round, and count toward the size limit", () => {
+  const s1 = "c".repeat(40);
+  const comments = [
+    c(1, `[MONE-ASK] id=A lane=chat op=design round=1 status=open\n長文の相談です。files=1 sha=${s1} path=consult/A/r1/\n一回目`),
+    c(2, "[MONE-RECORD] request=A round=1 source=1 tag=x\n答え1"),
+    c(3, "[MONE-REPLY] id=A round=2\n短い二回目"),
+  ];
+  const seen = [];
+  const m = buildMail(comments, (p, ref) => { seen.push(`${p}@${ref}`); return "一回目の資料"; }, TOKEN);
+  assert.equal(m.ok, true);
+  assert.deepEqual(seen, [`consult/A/r1/part-1.md@${s1}`]);
+  assert.ok(m.body.includes("【前の回 1】\n[MONE-ASK] id=A lane=chat op=design round=1 status=open\n長文の相談です。files=1 sha=" + s1 + " path=consult/A/r1/\n一回目\n【前の回 1 の資料 part-1/1】\n一回目の資料\n【前の回 2】"));
+  const big = buildMail(comments, () => "あ".repeat(MAX_MAIL_CHARS), TOKEN);
+  assert.equal(big.ok, false);
+  assert.match(big.reason, /4,500字/);
+});
+
+// Codex (PR #118): a send must leave room for its own record, so an accepted send can always be recorded.
+test("send stops early enough that its record still fits in the thread", () => {
+  const filler = (n) => Array.from({ length: n }, (_, i) => c(1000 + i, "[MONE-NOTE] id=Z status=closed answer=1\nx"));
+  const ask = c(10, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\n問い");
+  const reply = `⟦AMONE-TOKEN ${TOKEN}⟧\n答え\n【回答おわり request=A round=1】`;
+  const f1 = fake([ask, ...filler(198)], { reply });
+  assert.equal(cli(["send", "out"], f1.deps, f1.log), 1);
+  assert.match(f1.logs.pop(), /引っ越し/);
+  const f2 = fake([ask, ...filler(197)], { reply });
+  assert.equal(cli(["send", "out"], f2.deps, f2.log), 0);
+  assert.equal(cli(["record", "reply", "text"], f2.deps, f2.log), 0);
+  assert.equal(f2.deps.fetch().length, 200);
+});

@@ -37,8 +37,13 @@ function buildMail(comments, readFile, token) {
   if (!plan.ok) return plan;
   const { id, round, source } = plan.target;
   const src = comments.find((c) => c.id === source);
-  const m = String(src.body).match(/files=(\d+) sha=([0-9a-f]{40}) path=(consult\/[A-Za-z0-9-]+\/r\d+\/)/);
-  const n = m ? Number(m[1]) : 0;
+  // The files post-long.js pinned to a comment, read at that commit, whole. Earlier rounds' files too (Codex on PR #118).
+  const pinned = (body) => {
+    const p = String(body).match(/files=(\d+) sha=([0-9a-f]{40}) path=(consult\/[A-Za-z0-9-]+\/r\d+\/)/);
+    const k = p ? Number(p[1]) : 0;
+    return { n: k, read: (j) => String(readFile(`${p[3]}part-${j}.md`, p[2])).replace(/\r\n?/g, "\n").replace(/\s+$/, "") };
+  };
+  const { n, read } = pinned(src.body);
   const { limitOf } = require("./post");
   const limit = limitOf(comments, id);
 
@@ -52,13 +57,16 @@ function buildMail(comments, readFile, token) {
     let k = 0;
     for (const c of comments) {
       if (c.id === source) break;
-      const h = first(c.body), f = fields(h);
-      const same = (h.startsWith("[MONE-ASK]") || h.startsWith("[MONE-REPLY]")) ? f.id === id
-        : (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && f.request === id && f.status !== "blocked";
-      if (same) out.push(`【前の回 ${++k}】`, stripFooter(c.body));
+      const h = first(c.body), fl = fields(h);
+      const same = (h.startsWith("[MONE-ASK]") || h.startsWith("[MONE-REPLY]")) ? fl.id === id
+        : (h.startsWith("[AMU-ANSWER]") || h.startsWith("[MONE-RECORD]")) && fl.request === id && fl.status !== "blocked";
+      if (!same) continue;
+      out.push(`【前の回 ${++k}】`, stripFooter(c.body));
+      const f = pinned(c.body);
+      for (let j = 1; j <= f.n; j++) out.push(`【前の回 ${k} の資料 part-${j}/${f.n}】`, f.read(j));
     }
   }
-  for (let k = 1; k <= n; k++) out.push(`【資料 part-${k}/${n}】`, String(readFile(`${m[3]}part-${k}.md`, m[2])).replace(/\r\n?/g, "\n").replace(/\s+$/, ""));
+  for (let k = 1; k <= n; k++) out.push(`【資料 part-${k}/${n}】`, read(k));
   const main = out.join("\n");
   const text = `${main}\n【相談おわり request=${id} round=${round} 本文=${len(main)}字】\n`;
   if (len(text) > MAX_MAIL_CHARS) {
@@ -100,11 +108,13 @@ function cli(argv, deps, log = console.log) {
   const { openSend, planRecord, recordBody } = require("./mail-route");
   let comments;
   try { comments = deps.fetch(); } catch (_) { return ng("GitHub から相談を読めませんでした (何も投稿していません)"); }
-  const full = () => comments.length >= 199 ? "スレッドのコメントが 200 件近くです。投稿せずに止まります。新しいスレッドへ引っ越してください" : null;
+  // The thread holds 200 comments. A send takes 2 (its [MONE-SEND] and its record), so an accepted send can always be
+  // recorded (Codex on PR #118): send needs room for both, record for its one.
+  const full = (need) => comments.length + need > 200 ? "スレッドのコメントが 200 件に届きます。投稿せずに止まります。新しいスレッドへ引っ越してください" : null;
   if (cmd === "send" && file) {
     const m = buildMail(comments, deps.readFile, deps.newToken());
     if (!m.ok) return ng(m.reason);
-    if (full()) return ng(full());
+    if (full(2)) return ng(full(2));
     deps.write(file, m.body);
     if (dry) { log(`DRY-RUN ${m.sendHead} ${m.chars}字 (投稿していません)`); return 0; }
     try { deps.post(sendBody(m.sendHead)); } catch (_) { return ng("[MONE-SEND] を投稿できませんでした。メールは送らないでください (自動では再試行しません)"); }
@@ -121,7 +131,7 @@ function cli(argv, deps, log = console.log) {
     if (!p.ok) return ng(p.reason);
     const plan = planRecord(comments, p.tag);
     if (!plan.ok) return ng(plan.reason);
-    if (full()) return ng(full());
+    if (full(1)) return ng(full(1));
     if (dry) { log(`DRY-RUN 記録できます request=${open.request} round=${open.round} (投稿していません)`); return 0; }
     try { deps.post(recordBody(plan.send, p.answer)); } catch (_) { return ng("記録を投稿できませんでした (自動では再試行しません)"); }
     log(`RECORDED request=${open.request} round=${open.round}`);
