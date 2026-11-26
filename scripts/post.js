@@ -217,8 +217,6 @@ function main(argv, now = new Date()) {
   let created;
   try { created = postFile(pr, file); } catch (_) { return ng("投稿に失敗しました(自動では再試行しません。状態を確認してください)"); }
   console.log(`POSTED ${created}`);
-  // keep the one [MONE-PACKET] comment in step with the thread (2026-11-26, よしひろさん「まとめの仕組みを作って」)
-  if (kind === "ask") console.log(require("./packet").refresh());
   return 0;
 }
 
