@@ -63,3 +63,15 @@ test("only the owner's packet comment is chosen for editing", () => {
   assert.equal(packetComment([own(1, "[MONE-PACKET] id=none"), other(2, "[MONE-PACKET] id=x")]).id, 1);
   assert.equal(packetComment([other(2, "[MONE-PACKET] id=x")]), null);
 });
+
+// Codex (PR #114, 2nd): asks and cancels by anyone but the owner are not used to choose the target.
+test("asks and cancels by others are ignored when choosing the target", () => {
+  const own = (id, body) => ({ id, body, user: { login: "amukutsurogiwork-oss" } });
+  const other = (id, body) => ({ id, body, user: { login: "someone-else" } });
+  const comments = [
+    other(1, "[MONE-ASK] id=X lane=chat op=design round=1 status=open\n第三者"),
+    own(2, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\n本人"),
+    other(3, "[MONE-ASK] id=A status=cancel"),
+  ];
+  assert.match(buildPacket(comments, () => ""), /^\[MONE-PACKET\] id=A round=1 source=2 /);
+});

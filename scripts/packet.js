@@ -14,6 +14,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const REPO = "amukutsurogiwork-oss/ai-collab-sandbox";
+const OWNER = "amukutsurogiwork-oss";
 const firstLine = (t) => String(t || "").replace(/^﻿/, "").split(/\r?\n/)[0].trim();
 function fields(line) {
   const out = {};
@@ -38,7 +39,9 @@ function target(comments) {
 
 // readFile(path, sha) returns the file's text at that commit.
 function buildPacket(comments, readFile) {
-  const t = target(comments || []);
+  // Only the owner's comments count, as in Amu's intake (Codex on PR #114). Test data without a user counts as the owner's.
+  comments = (comments || []).filter((c) => !c.user || c.user.login === OWNER);
+  const t = target(comments);
   if (!t) return "[MONE-PACKET] id=none\n答え待ちの相談はありません。\n【まとめの終わり id=none】\n";
   const m = String(t.c.body).match(/files=(\d+) sha=([0-9a-f]{40}) path=(consult\/[A-Za-z0-9-]+\/r\d+\/)/);
   const n = m ? Number(m[1]) : 0;
@@ -59,7 +62,6 @@ function buildPacket(comments, readFile) {
   return out.join("\n") + "\n";
 }
 
-const OWNER = "amukutsurogiwork-oss";
 // The newest packet comment written by the owner, if any (only one is kept and edited in place).
 // A comment by anyone else is never chosen (Codex on PR #114). Test data without a user counts as the owner's.
 function packetComment(comments) {
