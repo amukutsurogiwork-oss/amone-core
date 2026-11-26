@@ -171,3 +171,13 @@ test("a design ask with limit=N keeps room for an answer of N characters", () =>
   assert.strictEqual(planAsk(d(4000).replace("D1", "P2"), prev, NOW).ok, false);
   assert.strictEqual(planAsk("[MONE-ASK] id=P2 lane=chat op=design round=1 status=open\n設計の相談", prev, NOW).ok, true);
 });
+// 2026-11-26 (CUSTOM-INST-1): a closing [MONE-NOTE] was refused because the budget added room for an answer to it.
+// Nobody answers a note and Amu does not read notes in full, so the read budget does not apply to a note.
+test("a closing note is not refused by the read budget (no answer comes to a note)", () => {
+  const prev = [
+    { id: 1, body: "[MONE-ASK] id=N1 lane=chat op=design round=1 status=open limit=4000\n" + "あ".repeat(2600) },
+    { id: 2, body: "[MONE-RECORD] request=N1 round=1 source=1 tag=x\n" + "い".repeat(4000) },
+  ];
+  const r = planAsk("[MONE-NOTE] id=N1 status=closed answer=2\n" + "う".repeat(600), prev, NOW);
+  assert.strictEqual(r.ok, true, r.reason);
+});

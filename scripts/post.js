@@ -102,6 +102,8 @@ function answerReserve(comments, text) {
 }
 function overBudget(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
+  // A [MONE-NOTE] gets no answer and is not read in full, so the read budget does not apply (2026-11-26, CUSTOM-INST-1).
+  if (firstLine(text).startsWith("[MONE-NOTE]")) return null;
   const used = readChars(comments, readIds(comments, text));
   const reserve = answerReserve(comments, text);
   return used + chars(text) + reserve > MAX_READ_CHARS
