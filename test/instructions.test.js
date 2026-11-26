@@ -206,7 +206,9 @@ test("v27: long attachments are read with the question first, each part once, ke
 // 投稿直前の確認を、1回のプログラム実行でできる短い手順にする。安全の中身 (取消・回答済み・本文の変化・open・凍結) は残す。
 test("v27: the pre-post check is one short program run over a fresh fetch, keeping the safety items", () => {
   has("投稿の直前に、台帳と全会話コメントを1回ずつ再取得し、1回のプログラム実行で次を確かめる");
-  for (const w of ["対象相談の本文が最初の取得と完全に一致する", "同じIDの取消、同じID・roundの回答・blockedがない", "PRがopenで、chatが凍結されていない",
-    "全部合えばすぐ投稿する。合わなければ投稿せず、その理由をAMU-STATUSに書く"]) has(w);
+  for (const w of ["対象相談の本文が最初の取得と完全に一致する", "同じIDの取消、同じID・roundの回答・blockedがない", "chatも凍結されていない", "PRがopen。追加資料を使った場合はhead_shaが同じ",
+    "全部合えばすぐ投稿する。合わなければ投稿せず、その理由をAMU-STATUSに書く",
+    // Codex (PR #112): keep the related history of rounds 2-3 and the refreshed registry's target and operation permissions in the check
+    "同じIDの過去回の本文と回答も、最初の取得と完全に一致する", "台帳の相談PR番号が同じで、opが許可済み・承認不要・凍結なし"]) has(w);
   assert.ok(!instruction().includes("SHA-256照合値"), "the hash hand-over between runs is dropped (one run does it all)");
 });
