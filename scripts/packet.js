@@ -59,10 +59,15 @@ function buildPacket(comments, readFile) {
   return out.join("\n") + "\n";
 }
 
-// The newest packet comment, if any (only one is kept and edited in place).
+const OWNER = "amukutsurogiwork-oss";
+// The newest packet comment written by the owner, if any (only one is kept and edited in place).
+// A comment by anyone else is never chosen (Codex on PR #114). Test data without a user counts as the owner's.
 function packetComment(comments) {
   let found = null;
-  for (const c of comments || []) if (firstLine(c.body).startsWith("[MONE-PACKET]")) found = c;
+  for (const c of comments || []) {
+    if (c.user && c.user.login !== OWNER) continue;
+    if (firstLine(c.body).startsWith("[MONE-PACKET]")) found = c;
+  }
   return found;
 }
 

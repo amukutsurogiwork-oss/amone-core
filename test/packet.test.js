@@ -55,3 +55,11 @@ test("the packet comment itself is never taken as an ask, and the existing one i
   assert.match(buildPacket(comments, () => ""), /^\[MONE-PACKET\] id=A round=1 source=2/);
   assert.equal(packetComment(comments).id, 3);
 });
+
+// Codex (PR #114): a [MONE-PACKET] comment by someone else must not be chosen for editing (nor block the owner's packet).
+test("only the owner's packet comment is chosen for editing", () => {
+  const own = (id, body) => ({ id, body, user: { login: "amukutsurogiwork-oss" } });
+  const other = (id, body) => ({ id, body, user: { login: "someone-else" } });
+  assert.equal(packetComment([own(1, "[MONE-PACKET] id=none"), other(2, "[MONE-PACKET] id=x")]).id, 1);
+  assert.equal(packetComment([other(2, "[MONE-PACKET] id=x")]), null);
+});
