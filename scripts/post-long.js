@@ -123,7 +123,8 @@ function main(argv) {
   for (const f of files) {
     try { fetched[f.path] = Buffer.from(gh(["api", `repos/${repo}/contents/${f.path}?ref=${sha}`, "--jq", ".content"]), "base64").toString("utf8"); } catch (_) { /* missing */ }
   }
-  const head = gh(["api", `repos/${repo}/pulls/${askPr()}`, "--jq", ".head.sha"]);
+  const pause = () => execFileSync("sleep", ["3"]);
+  const head = waitForHead(() => gh(["api", `repos/${repo}/pulls/${askPr()}`, "--jq", ".head.sha"]), sha, 5, pause);
   const check = verifyPushed(files, fetched, sha, head);
   if (!check.ok) { console.log("NG: " + check.reason + " (目印は出していません。ファイルは残っています)"); return 1; }
   const marker = path.join(dir, "marker.md");
@@ -132,6 +133,14 @@ function main(argv) {
   return post.main(["ask", marker]);
 }
 
+// Right after a push, the PR API may still return the old head for a few seconds (LONG-T1/T2, 2026-11-26).
+// Re-read it up to `tries` times, pausing between reads; return the last value read.
+function waitForHead(readHead, sha, tries, pause) {
+  let head = readHead();
+  for (let i = 1; i < tries && head !== sha; i++) { pause(); head = readHead(); }
+  return head;
+}
+
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { splitParts, partPath, partFiles, parseLong, planLong, verifyPushed, markerComment, MAX_PARTS, MAX_PART_CHARS };
+module.exports = { waitForHead, splitParts, partPath, partFiles, parseLong, planLong, verifyPushed, markerComment, MAX_PARTS, MAX_PART_CHARS };

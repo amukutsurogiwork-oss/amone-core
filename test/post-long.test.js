@@ -100,3 +100,16 @@ test("a quoted signature inside the body does not cut the rest of the body", () 
   const joined = partFiles("Q1", 1, body).map((f) => f.content.split("\n").slice(1, -1).join("\n")).join("");
   assert.strictEqual(joined, body);
 });
+
+// 2026-11-26: push の直後は、PR の head がまだ古い値を返すことがあり、post-long が2回続けて止まった
+// (LONG-T1・LONG-T2。数秒後には新しい head になっていた)。head は少し待って何度か読み直す。
+test("waitForHead: re-reads the PR head a few times until it matches the pushed commit", () => {
+  const { waitForHead } = require("../scripts/post-long.js");
+  const seen = ["old", "old", "new"];
+  let n = 0;
+  assert.equal(waitForHead(() => seen[n++], "new", 5, () => {}), "new");
+  assert.equal(n, 3);
+  let m = 0;
+  assert.equal(waitForHead(() => { m++; return "old"; }, "new", 4, () => {}), "old");
+  assert.equal(m, 4);
+});
