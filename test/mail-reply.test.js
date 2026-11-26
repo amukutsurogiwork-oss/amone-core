@@ -56,3 +56,14 @@ test("html: an unknown named character reference is held, not compared", () => {
   assert.equal(r.ok, false);
   assert.match(r.reason, /読めない文字参照/);
 });
+
+// Codex (PR #115, 2nd): uppercase hex (&#X41;) is decoded; numeric references whose HTML meaning differs from the
+// code point (128-159, 0, surrogates, out of range) are held, not decoded wrongly.
+test("html: numeric references follow HTML rules or are held", () => {
+  assert.deepEqual(normalizeReply("&#X41;&#x42;&#67;", "html"), { ok: true, text: "ABC" });
+  for (const bad of ["&#128;", "&#0;", "&#xD800;", "&#x110000;"]) {
+    const r = normalizeReply(`a${bad}b`, "html");
+    assert.equal(r.ok, false, bad);
+    assert.match(r.reason, /読めない文字参照/);
+  }
+});

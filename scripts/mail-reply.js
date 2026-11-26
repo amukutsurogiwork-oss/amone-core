@@ -10,7 +10,7 @@
 const NAMED = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " ", "#39": "'" };
 
 function decodeRefs(s) {
-  return s.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+|#39);/g, (m, r) => {
+  return s.replace(/&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z]+|#39);/g, (m, r) => {
     if (r[0] === "#" && r !== "#39") {
       const cp = r[1] === "x" || r[1] === "X" ? parseInt(r.slice(2), 16) : parseInt(r.slice(1), 10);
       return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
@@ -26,7 +26,13 @@ function normalizeReply(raw, kind) {
     s = s.replace(/<br\s*\/?>/gi, "\n");
     if (/<[a-zA-Z/!][^>]*>/.test(s)) return { ok: false, reason: "判定できない形式です (改行以外のタグがあります)。保留します" };
     // A named reference we do not know is held, not compared as changed text (Codex on PR #115).
-    const unknown = (s.match(/&([a-zA-Z]+);/g) || []).find((m) => !(m.slice(1, -1) in NAMED));
+    const unknown = (s.match(/&([a-zA-Z]+);/g) || []).find((m) => !(m.slice(1, -1) in NAMED))
+      // numeric references whose HTML meaning is not the plain code point are held too (Codex on PR #115)
+      || (s.match(/&#(x[0-9a-fA-F]+|X[0-9a-fA-F]+|\d+);/g) || []).find((m) => {
+        const r = m.slice(2, -1);
+        const cp = r[0] === "x" || r[0] === "X" ? parseInt(r.slice(1), 16) : parseInt(r, 10);
+        return !(cp > 0 && cp <= 0x10ffff) || (cp >= 0x80 && cp <= 0x9f) || (cp >= 0xd800 && cp <= 0xdfff);
+      });
     if (unknown) return { ok: false, reason: `読めない文字参照 (${unknown}) があります。保留します` };
     s = decodeRefs(s);
   }
