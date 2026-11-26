@@ -201,3 +201,16 @@ test("v27: long attachments are read with the question first, each part once, ke
   has("問いを先に読み、各部の本文は一度ずつ読み、根拠の部番号と因果・反例を手元に残す");
   has("自由文・Work依頼・AMU-STATUS・AMU-NOTICEは相談対象外。後二者は重複確認にだけ使い、再起動しない");
 });
+// 2026-11-26 12:14 (AMU-PIPE-1、よしひろさんの画面): 資料なしの相談でも、相談を読んで答えを考えたあと、
+// 「投稿直前の相談本文の完全一致照合と、安全確認が未完了」で投稿せずに終わった (12秒の思考)。
+// 投稿直前の確認を、1回のプログラム実行でできる短い手順にする。安全の中身 (取消・回答済み・本文の変化・open・凍結) は残す。
+test("v27: the pre-post check is one short program run over a fresh fetch, keeping the safety items", () => {
+  has("投稿の直前に、台帳と全会話コメントを1回ずつ再取得し、1回のプログラム実行で次を確かめる");
+  for (const w of ["対象相談の本文が最初の取得と完全に一致する", "同じIDの取消、同じID・roundの回答・blockedがない", "chatも凍結されていない", "PRがopen。追加資料を使った場合はhead_shaが同じ",
+    "全部合えばすぐ投稿する。合わなければ投稿せず、その理由をAMU-STATUSに書く",
+    // Codex (PR #112): keep the related history of rounds 2-3 and the refreshed registry's target and operation permissions in the check
+    "同じIDの過去回の本文と回答も、最初の取得と完全に一致する", "台帳の相談PR番号が同じで、opが許可済み・承認不要・凍結なし",
+    // Codex (PR #112, 2nd): a duplicate ask with the same ID (or same ID and round) added meanwhile must stop the post
+    "同じIDの初回相談、同じID・roundの追加相談が重複していない"]) has(w);
+  assert.ok(!instruction().includes("SHA-256照合値"), "the hash hand-over between runs is dropped (one run does it all)");
+});
