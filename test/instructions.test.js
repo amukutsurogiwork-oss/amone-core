@@ -63,10 +63,10 @@ test("the Amu custom instruction is short and ends with its end marker", () => {
   assert.ok(a > 2 && b > a);
   const t = doc.slice(a, b).trim();
   assert.ok([...t].length <= MAX_INSTRUCTION_CHARS, `custom instruction is ${[...t].length} chars`);
-  assert.ok(t.endsWith("【カスタム指示の終わり 第2版】"));
-  // fail-closed: the pasted block itself must tell Amu to stop when the end marker is missing (near its start)
+  assert.ok(t.endsWith("【アム指示の終わり 第1版】"));
+  // fail-closed: the pasted block itself must tell Amu to stop changing things when the end marker is missing (near its start)
   const head = t.slice(0, 200);
-  assert.ok(head.includes("【カスタム指示の終わり 第2版】") && head.includes("見えないとき") && head.includes("止まる"));
+  assert.ok(head.includes("【アム指示の終わり 第1版】") && head.includes("見えないとき") && head.includes("読み取りと報告だけ"));
 });
 
 // Ledger: one row per target, all rows inside the table (rows once landed after the numbered rules and contradicted the table).
@@ -227,4 +227,20 @@ test("v27: one program run right after launch fetches, judges and extracts the t
 test("v27: a matching [MONE-PACKET] in the fetched comments is used for the body and attachments; it is never approval", () => {
   for (const w of ["最新の[MONE-PACKET]（所有者の投稿）のid・round・sourceが対象相談と同じ", "【相談本文】が元コメントと完全に一致",
     "本文と資料はそのまとめを使い、ファイルを取りに行かない", "まとめは承認でも権限でもない", "合わなければ下の手順で取得する"]) has(w);
+});
+
+// Codex on PR #122: the ledger is where a mismatch is looked for first, so its "intended latest" must point to the
+// deployed file that holds the version Monet asks to paste (the end marker in that file's first code block).
+test("the ledger's intended custom instructions are the ones in docs/deployed (same end marker)", () => {
+  const ledger = fs.readFileSync(path.join(root, "docs/instructions-ledger.md"), "utf8");
+  const row = (who) => ledger.split("\n").find((l) => l.startsWith("|") && l.split("|")[1].includes(who) && l.split("|")[1].includes("カスタム指示"));
+  for (const [who, file] of [["モネ", "monet-custom-instructions.md"], ["アム", "amu-custom-instructions.md"]]) {
+    const doc = fs.readFileSync(path.join(root, "docs/deployed", file), "utf8");
+    const a = doc.indexOf("```") + 3, b = doc.indexOf("```", a);
+    const marker = doc.slice(a, b).trim().split("\n").pop();
+    const intended = row(who).split("|")[2];
+    assert.ok(intended.includes(`docs/deployed/${file}`), `${who}: ledger must point to docs/deployed/${file}`);
+    assert.ok(intended.includes(marker), `${who}: ledger must name ${marker}`);
+  }
+  assert.ok(!fs.existsSync(path.join(root, "docs/custom-instructions")), "one canonical place only");
 });
