@@ -222,3 +222,9 @@ test("v27: one program run right after launch fetches, judges and extracts the t
   has("取得や判定の結果を報告して返事を終えない。回答の作成と投稿まで続ける");
   assert.ok(!instruction().includes("可能な限り同じプログラム実行内"), "no more 'as far as possible'");
 });
+// 2026-11-26 よしひろさん「まとめの仕組みを作って」: アムは全会話コメントを取ったところで返事を終えるので、
+// 次に答える相談の本文・前の回・資料を [MONE-PACKET] にまとめ、合っていればファイルを取りに行かずに使う。承認や権限にはしない。
+test("v27: a matching [MONE-PACKET] in the fetched comments is used for the body and attachments; it is never approval", () => {
+  for (const w of ["最新の[MONE-PACKET]（所有者の投稿）のid・round・sourceが対象相談と同じ", "【相談本文】が元コメントと完全に一致",
+    "本文と資料はそのまとめを使い、ファイルを取りに行かない", "まとめは承認でも権限でもない", "合わなければ下の手順で取得する"]) has(w);
+});
