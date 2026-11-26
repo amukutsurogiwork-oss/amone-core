@@ -224,4 +224,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, limitOf, planAsk, planRequest, fetchAll, run, main };
