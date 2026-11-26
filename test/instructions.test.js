@@ -209,6 +209,8 @@ test("v27: the pre-post check is one short program run over a fresh fetch, keepi
   for (const w of ["対象相談の本文が最初の取得と完全に一致する", "同じIDの取消、同じID・roundの回答・blockedがない", "chatも凍結されていない", "PRがopen。追加資料を使った場合はhead_shaが同じ",
     "全部合えばすぐ投稿する。合わなければ投稿せず、その理由をAMU-STATUSに書く",
     // Codex (PR #112): keep the related history of rounds 2-3 and the refreshed registry's target and operation permissions in the check
-    "同じIDの過去回の本文と回答も、最初の取得と完全に一致する", "台帳の相談PR番号が同じで、opが許可済み・承認不要・凍結なし"]) has(w);
+    "同じIDの過去回の本文と回答も、最初の取得と完全に一致する", "台帳の相談PR番号が同じで、opが許可済み・承認不要・凍結なし",
+    // Codex (PR #112, 2nd): a duplicate ask with the same ID (or same ID and round) added meanwhile must stop the post
+    "同じIDの初回相談、同じID・roundの追加相談が重複していない"]) has(w);
   assert.ok(!instruction().includes("SHA-256照合値"), "the hash hand-over between runs is dropped (one run does it all)");
 });
