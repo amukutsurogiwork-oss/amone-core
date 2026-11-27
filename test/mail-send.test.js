@@ -80,6 +80,17 @@ test("the reply gives the token and the whole answer, only when it ends with the
   assert.match(noTok.reason, /照合札/);
 });
 
+test("a reply that is the question itself (the shortcut returned its input, not the answer) is held with a clear reason", () => {
+  // 2026-11-27 MONE-IDEA-1: the iPhone side returned the original question. It must be named, not reported as just "cut".
+  const echo = parseReply(`⟦AMONE-TOKEN ${TOKEN}⟧\n【AMONE相談 v1 request=A round=1 source=1 parts=0 limit=800】\n【相談本文】\n[MONE-ASK] id=A lane=chat op=review round=1 status=open\n問い\n【相談おわり request=A round=1 本文=10字】\n`, { request: "A", round: 1 });
+  assert.equal(echo.ok, false);
+  assert.match(echo.reason, /相談の原文/);
+  assert.match(echo.reason, /入力/);
+  // a real answer that merely mentions the words is still accepted when it ends with the end line
+  const mention = parseReply(`⟦AMONE-TOKEN ${TOKEN}⟧\n答えの中で「【相談本文】」という言葉に触れる\n【回答おわり request=A round=1】`, { request: "A", round: 1 });
+  assert.equal(mention.ok, true);
+});
+
 // The commands: take the slot, write the mail; then check the reply and record it. Nothing is posted on a dry run.
 const { cli } = require("../scripts/mail-send.js");
 function fake(comments, files = {}) {
