@@ -165,7 +165,8 @@ test("a design ask with limit=N keeps room for an answer of N characters", () =>
   const d = (n) => `[MONE-ASK] id=D1 lane=chat op=design round=1 status=open limit=${n}\n設計の相談`;
   assert.strictEqual(checkAsk(d(4000)), null);
   assert.match(checkAsk(d(4001)), /4000/);
-  assert.match(checkAsk("[MONE-ASK] id=D1 lane=chat op=review round=1 status=open limit=2000\nx"), /design/);
+  // 2026-11-27: limit=N is allowed on every op (it used to be design only)
+  assert.strictEqual(checkAsk("[MONE-ASK] id=D1 lane=chat op=review round=1 status=open limit=2000\nx"), null);
   // 3,300 already read + this post + 4,000 for its answer > 8,000: refused; with the normal 800 it fits
   const prev = [{ body: "[MONE-ASK] id=P lane=chat op=design round=1 status=open\n" + "y".repeat(3300) }];
   assert.strictEqual(planAsk(d(4000).replace("D1", "P2"), prev, NOW).ok, false);

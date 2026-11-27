@@ -40,9 +40,8 @@ function checkAsk(text) {
   }
   if (tag === "MONE-ASK") {
     if (f.status === "cancel") return keys === "id,status" ? null : "取消は [MONE-ASK] id=<相談ID> status=cancel だけです";
-    // アムの設計 (Astra, 2026-11-26): a design ask may allow a longer answer with limit=N (N up to 4000).
+    // アムの設計 (Astra, 2026-11-26; 全種類に広げた 2026-11-27): an ask may allow a longer answer with limit=N (N up to 4000).
     if (f.limit !== undefined) {
-      if (f.op !== "design") return "limit= は op=design の相談だけに付けられます";
       if (!/^[1-9][0-9]{0,3}$/.test(f.limit) || Number(f.limit) > 4000) return "limit= は 1〜4000 の数です";
     }
     if (keys.replace(",limit", "") !== "id,lane,op,round,status") return "[MONE-ASK] には id lane op round status の全欄が必要です";

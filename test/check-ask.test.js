@@ -33,3 +33,11 @@ test("half-width @codex is refused even in a MONE-NOTE", () => {
   assert.notEqual(checkAsk("[MONE-NOTE] id=X\n連絡です @codex"), null);
   assert.equal(checkAsk("[MONE-NOTE] id=X\n連絡です ＠codex"), null);
 });
+
+test("limit=N is allowed on any chat op (1..4000), not only design", () => {
+  const h = (op, l) => `[MONE-ASK] id=X lane=chat op=${op} round=1 status=open limit=${l}\n本文`;
+  assert.equal(checkAsk(h("review", 1500)), null);
+  assert.equal(checkAsk(h("design", 4000)), null);
+  assert.notEqual(checkAsk(h("review", 4001)), null);
+  assert.notEqual(checkAsk(h("review", 0)), null);
+});
