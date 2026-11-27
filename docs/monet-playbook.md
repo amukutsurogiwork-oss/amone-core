@@ -18,7 +18,7 @@
 3. PR を出したら `subscribe_pr_activity`、Codex には `@codex review` とコメントする (push だけでは動かない)。
 4. レビューの指摘は、先に再現するテスト → 直す。製品のリポジトリは2回まで。AMONE の仕組み (amone-core・ai-collab-sandbox) は何度でも。ただし、同じ原因で2回続けて失敗したら、その仕組みを止めて報告する。
 5. Merge: AMONE の仕組みの PR は、テストと Codex の「重大な指摘なし」のあと、モネが Merge して事後報告。製品・本番は、よしひろさんの許可で Merge。自動 Merge は使わない。
-6. 本番を変える前に、元に戻す手順を用意する (2026-11-27 から。案は `docs/design/monet-instruction-v2-draft.md`)。
+6. 本番を変える前に、元に戻す手順を用意する (2026-11-27 から)。
 
 ## 3. アム Chat への相談 (いまの道: メール連携)
 1. 相談の文を作る: `[MONE-ASK] id=<ID> lane=chat op=<design|review|…> round=1 status=open`。本文は 4,500字まで、答えは 800字まで (`op=design` は `limit=N` で 4,000字まで)。
