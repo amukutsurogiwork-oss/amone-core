@@ -87,6 +87,10 @@ function parseReply(text, open) {
   if (!t) return { ok: false, reason: "1行目に照合札がありません。保留します" };
   const answer = lines.slice(1).join("\n").replace(/^\s+|\s+$/g, "");
   const last = answer.split("\n").pop().trim();
+  // 2026-11-27 (MONE-IDEA-1): the iPhone side once returned the question itself. Name it, so the cause is found at once.
+  if (last !== endOfAnswer(open.request, open.round) && /^【相談おわり request=/.test(last)) {
+    return { ok: false, reason: "答えでなく、相談の原文がそのまま返っています (ショートカットのメール本文が、ChatGPT の答えでなく入力になっていないか確認してください)。保留します" };
+  }
   if (last !== endOfAnswer(open.request, open.round)) {
     return { ok: false, reason: `答えの最後が「${endOfAnswer(open.request, open.round)}」ではありません (途中で切れたか、別の相談の答えです)。保留します` };
   }
