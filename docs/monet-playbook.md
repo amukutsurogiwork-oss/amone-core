@@ -11,6 +11,7 @@
 3. 台帳 `collab/registry.json` と `node scripts/status.js` で、答え待ち・判断待ちの相談を確かめる。
 4. **道具の確認は、`gh auth status` でなく、実際に `gh api` を1回読んで決める** (2026-11-27 のまちがい。`gh auth status` は「鍵が無効」と出ても、通信は通る)。
 5. 前にもらった写真・答えは、頼む前に見直す (`docs/roles.md`、2026-11-17)。
+6. **新しい枠で、読み込まれた指示を確かめる** (2026-11-28 よしひろさん「枠を変えても、毎回貼り直さず同じ動きにしたい」): ① モネ指示の最後に「【モネ指示の終わり 第1版】」が見えるか。写しは `docs/deployed/monet-custom-instructions.md` ② `CLAUDE.md` (amone-core が正本)。字数の決まりは9番 ③ 古い道の写し (`docs/amu-chat-instructions.md` 第16版の「800字以内」) は、アムが GitHub を読んでいた頃のもの。メールの道では使われない。いま貼られているアム指示 第1版 (`docs/deployed/amu-custom-instructions.md`) に字数の決まりはなく、字数は毎回のメールの本文で決まる ④ スキル `monet-shacho`・`iphone-auto-dev` (アカウントに同期された写し、2026-11-26 版) は古い (相談箱 Issue・「指示文を置かない」など)。食い違ったら、CLAUDE.md と `docs/AMONE.md` が正。9章に食い違いの一覧
 
 ## 2. 仕事の流れ (開発)
 1. 完成の条件を1行で決める。
