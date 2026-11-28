@@ -44,13 +44,14 @@ function buildMail(comments, readFile, token) {
     return { n: k, read: (j) => String(readFile(`${p[3]}part-${j}.md`, p[2])).replace(/\r\n?/g, "\n").replace(/\s+$/, "") };
   };
   const { n, read } = pinned(src.body);
-  const { limitOf } = require("./post");
-  const limit = limitOf(comments, id);
+  const { limitOf, limitSpecified } = require("./post");
+  const specified = limitSpecified(comments, id);
+  const limit = specified ? limitOf(comments, id) : "なし";
 
   const out = [
     `【AMONE相談 v${VERSION} request=${id} round=${round} source=${source} parts=${n} limit=${limit}】`,
     "アムへ。モネからの相談です。GitHub は見に行かず、このメールの中身だけで答えてください。",
-    `前の回と資料があれば先に読み、【相談本文】に日本語で${limit}字以内で答えてください。答えの最後の行は「${endOfAnswer(id, round)}」にしてください。`,
+    `前の回と資料があれば先に読み、【相談本文】に日本語で答えてください。${specified ? `${limit}字以内で答えてください。` : "字数の指定はありません。問いに必要な長さで、結論から答えてください。"}答えの最後の行は「${endOfAnswer(id, round)}」にしてください。`,
     "【相談本文】", stripFooter(src.body),
   ];
   if (round > 1) {

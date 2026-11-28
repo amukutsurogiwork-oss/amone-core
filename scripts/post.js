@@ -95,6 +95,13 @@ function limitOf(comments, id, text) {
   const n = asks.length ? Number(parseFields(asks[0]).limit) : NaN;
   return Number.isInteger(n) && n > 0 ? n : ANSWER_RESERVE;
 }
+// true when the first ask of that id set limit=N (otherwise no length is specified: the answer is as long as the question needs).
+function limitSpecified(comments, id) {
+  const asks = (comments || []).map((c) => c.body || "").map(firstLine)
+    .filter((h) => h.startsWith("[MONE-ASK]") && parseFields(h).id === id && parseFields(h).status !== "cancel");
+  const n = asks.length ? Number(parseFields(asks[0]).limit) : NaN;
+  return Number.isInteger(n) && n > 0;
+}
 function answerReserve(comments, text) {
   let r = 0;
   for (const k of pendingKeys(comments).keys()) r += limitOf(comments, k.split(":")[0]);
@@ -224,4 +231,4 @@ function main(argv, now = new Date()) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, limitOf, planAsk, planRequest, fetchAll, run, main };
+module.exports = { askPr, pendingKeys, readChars, MAX_READ_CHARS, limitOf, limitSpecified, planAsk, planRequest, fetchAll, run, main };
