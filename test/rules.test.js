@@ -19,6 +19,11 @@ test("CLAUDE.md names the old-route documents so a new window does not pick them
     assert.ok(t.includes(w), `CLAUDE.md must mention ${w}`);
   }
 });
+test("CLAUDE.md says get_thread can lag too, so look again before cancelling (2026-11-28)", () => {
+  const t = read("CLAUDE.md");
+  assert.ok(t.includes("get_thread で開いても、見えるのが遅れることがある"));
+  assert.ok(t.includes("取り消す前・枠を空ける前に、もう一度スレッドを開き直す"));
+});
 test("the numbers in CLAUDE.md are the ones the code and tests enforce", () => {
   assert.match(read("scripts/post.js"), /const MAX_READ_CHARS = 8000;/);
   assert.ok(!/MAX_THREAD_CHARS/.test(read("scripts/post.js")));
