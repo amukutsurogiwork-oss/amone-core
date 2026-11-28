@@ -13,6 +13,12 @@ test("CLAUDE.md holds the permanent rules", () => {
     assert.ok(t.includes(w), `CLAUDE.md must mention ${w}`);
   }
 });
+test("CLAUDE.md names the old-route documents so a new window does not pick them up (2026-11-28)", () => {
+  const t = read("CLAUDE.md");
+  for (const w of ["古い道の文書は使わない", "docs/amu-chat-instructions.md", "docs/shortcut-amu-launch.md", "docs/deployed/amu-custom-instructions.md", "スキル", "CLAUDE.md と `docs/AMONE.md` が正"]) {
+    assert.ok(t.includes(w), `CLAUDE.md must mention ${w}`);
+  }
+});
 test("the numbers in CLAUDE.md are the ones the code and tests enforce", () => {
   assert.match(read("scripts/post.js"), /const MAX_READ_CHARS = 8000;/);
   assert.ok(!/MAX_THREAD_CHARS/.test(read("scripts/post.js")));
