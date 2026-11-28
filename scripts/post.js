@@ -102,21 +102,6 @@ function limitSpecified(comments, id) {
   const n = asks.length ? Number(parseFields(asks[0]).limit) : NaN;
   return Number.isInteger(n) && n > 0;
 }
-function answerReserve(comments, text) {
-  let r = 0;
-  for (const k of pendingKeys(comments).keys()) r += limitOf(comments, k.split(":")[0]);
-  return r + limitOf(comments, parseFields(firstLine(text)).id, text);
-}
-function overBudget(comments, text) {
-  if (parseFields(firstLine(text)).status === "cancel") return null;
-  // A [MONE-NOTE] gets no answer and is not read in full, so the read budget does not apply (2026-11-26, CUSTOM-INST-1).
-  if (firstLine(text).startsWith("[MONE-NOTE]")) return null;
-  const used = readChars(comments, readIds(comments, text));
-  const reserve = answerReserve(comments, text);
-  return used + chars(text) + reserve > MAX_READ_CHARS
-    ? `アムが全文を読む分 (答える相談と、その前の回のやり取り) が上限 ${MAX_READ_CHARS} 字をこえます (いま ${used} 字 + この投稿 ${chars(text)} 字 + これから来る回答の分 ${reserve} 字)。投稿せずに止まります。相談を短くするか、長い相談は post-long.js で分けてください`
-    : null;
-}
 // A cancellation is always allowed: refusing it would leave the original ask or request actionable.
 function threadFull(comments, text) {
   if (parseFields(firstLine(text)).status === "cancel") return null;
@@ -126,7 +111,7 @@ function threadFull(comments, text) {
 }
 
 function planAsk(text, comments, now = new Date()) {
-  const err = checkAsk(text) || threadFull(comments, text) || overBudget(comments, text);
+  const err = checkAsk(text) || threadFull(comments, text); // no read budget any more (2026-11-28): in the mail route Amu does not read GitHub
   if (err) return { ok: false, reason: err };
   // Amu ignores a second initial ask for the same id and a second reply for the same round.
   const head = firstLine(text);

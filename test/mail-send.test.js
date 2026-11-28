@@ -4,7 +4,7 @@
 // 1行目は照合札 (ショートカットが ChatGPT に渡す前に外し、答えの前に付けて返す)。札は相談PRには書かない (tag だけ)。
 const test = require("node:test");
 const assert = require("node:assert");
-const { buildMail, parseReply, MAX_MAIL_CHARS } = require("../scripts/mail-send.js");
+const { buildMail, parseReply } = require("../scripts/mail-send.js");
 const { tagOf } = require("../scripts/mail-route.js");
 
 const c = (id, body) => ({ id, body });
@@ -53,14 +53,13 @@ test("a later round carries the earlier asks and answers (Amu's and Monet's reco
   assert.match(m.body.split("\n")[1], /request=A round=2 source=3 parts=1 /);
 });
 
-test("no mail while another mail waits, and none over the Chat input limit", () => {
+test("no mail while another mail waits (and no length cap on the mail any more)", () => {
   const ask = c(10, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\n問い");
   const busy = buildMail([ask, c(11, "[MONE-SEND] request=A round=1 source=10 tag=ffff")], () => "", TOKEN);
   assert.equal(busy.ok, false);
   assert.match(busy.reason, /答え待ちのメールが1通あります/);
-  const long = buildMail([c(10, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\n" + "あ".repeat(MAX_MAIL_CHARS))], () => "", TOKEN);
-  assert.equal(long.ok, false);
-  assert.match(long.reason, /4,500字/);
+  const long = buildMail([c(10, "[MONE-ASK] id=A lane=chat op=design round=1 status=open\n" + "あ".repeat(6000))], () => "", TOKEN);
+  assert.equal(long.ok, true);
 });
 
 test("a token must be the one-time hex form", () => {
@@ -146,9 +145,8 @@ test("the files pinned to earlier rounds are put in, each after its round, and c
   assert.equal(m.ok, true);
   assert.deepEqual(seen, [`consult/A/r1/part-1.md@${s1}`]);
   assert.ok(m.body.includes("【前の回 1】\n[MONE-ASK] id=A lane=chat op=design round=1 status=open\n長文の相談です。files=1 sha=" + s1 + " path=consult/A/r1/\n一回目\n【前の回 1 の資料 part-1/1】\n一回目の資料\n【前の回 2】"));
-  const big = buildMail(comments, () => "あ".repeat(MAX_MAIL_CHARS), TOKEN);
-  assert.equal(big.ok, false);
-  assert.match(big.reason, /4,500字/);
+  const big = buildMail(comments, () => "あ".repeat(6000), TOKEN);
+  assert.equal(big.ok, true);
 });
 
 // Codex (PR #118): a send must leave room for its own record, so an accepted send can always be recorded.

@@ -67,7 +67,7 @@ test("a long ask is checked before pushing: bad header, duplicate, budget, and a
   assert.strictEqual(planLong(ok, [], NOW).ok, true);
   assert.strictEqual(planLong("hello\n本文", [], NOW).ok, false);
   assert.strictEqual(planLong(ok, [{ body: "[MONE-ASK] id=L1 lane=chat op=design round=1 status=open\nx" }], NOW).ok, false);
-  assert.match(planLong(ok, [{ body: "[MONE-ASK] id=L9 lane=chat op=design round=1 status=open\n" + "x".repeat(7800) }], NOW).reason, /8000/);
+  assert.strictEqual(planLong(ok, [{ body: "[MONE-ASK] id=L9 lane=chat op=design round=1 status=open\n" + "x".repeat(7800) }], NOW).ok, true); // no read budget any more (2026-11-28)
   const pendingLong = [{ body: "[MONE-ASK] id=L0 lane=chat op=design round=1 status=open\n長文の相談です。files=2 sha=" + "a".repeat(40) + " path=consult/L0/r1/" }];
   const r = planLong(ok, pendingLong, NOW);
   assert.strictEqual(r.ok, false);

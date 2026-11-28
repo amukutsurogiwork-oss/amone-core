@@ -16,9 +16,11 @@ test("CLAUDE.md holds the permanent rules", () => {
 test("the numbers in CLAUDE.md are the ones the code and tests enforce", () => {
   assert.match(read("scripts/post.js"), /const MAX_READ_CHARS = 8000;/);
   assert.ok(!/MAX_THREAD_CHARS/.test(read("scripts/post.js")));
-  assert.ok(read("CLAUDE.md").includes("スレッド全体の字数には上限を置かない"));
+  // 2026-11-28: no read budget and no mail-length cap any more (mail route)
+  assert.ok(!/overBudget|answerReserve/.test(read("scripts/post.js")));
+  assert.ok(!/MAX_MAIL_CHARS/.test(read("scripts/mail-send.js")));
+  assert.ok(read("CLAUDE.md").includes("全文を読む分の上限 (8,000字) と、相談メールの本文の上限 (4,500字) は、なくした"));
   assert.ok(read("CLAUDE.md").includes("**4,000字まで**") && /Number\(f\.limit\) > 4000/.test(read("scripts/check-ask.js")));
-  assert.ok(read("CLAUDE.md").includes("8,000字まで"));
   assert.match(read("test/instructions.test.js"), /const MAX_INSTRUCTION_CHARS = 4500;/);
   assert.match(read("test/instructions.test.js"), /const MAX_LAUNCH_CHARS = 500;/);
   assert.match(read("docs/amu-chat-instructions.md"), /800字以内/);
