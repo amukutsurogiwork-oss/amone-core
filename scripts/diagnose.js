@@ -43,7 +43,7 @@ function diagnose({ id, round, comments, pr, wakeSentAt, now = new Date() }) {
   // v21: Amu reads in full only the asks she answers (every pending one and this one) and their earlier rounds.
   const ids = new Set([...pendingKeys(cs).keys()].map((k) => k.split(":")[0]).concat(id));
   const used = readChars(cs, ids);
-  add("文字数", used <= MAX_READ_CHARS, `アムが全文を読む分 ${used} 字 (上限 ${MAX_READ_CHARS}、スレッド全体 ${cs.reduce((n, c) => n + chars(c.body), 0)} 字)`);
+  add("文字数", true, `参考: 古い道でアムが全文を読む分 ${used} 字 (上限なし。2026-11-28、スレッド全体 ${cs.reduce((n, c) => n + chars(c.body), 0)} 字)`);
   add("件数", cs.length < MAX_THREAD_COMMENTS, `${cs.length} 件`);
   add("相談の場所", pr && pr.state === "open" && /^\[AMONE-CHAT\]/.test(pr.title || ""), pr ? `${pr.state} / ${pr.title}` : "PR が読めません");
   const m = mine && /files=(\d+) sha=([0-9a-f]{40})/.exec(mine.body);

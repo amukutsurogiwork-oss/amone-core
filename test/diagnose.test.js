@@ -23,8 +23,8 @@ test("a blocked report is Amu's stop: read the reason", () => {
 });
 test("Mone-side problems are found: missing post, over budget, closed thread, stale long-ask sha, no wake mail, wake too soon", () => {
   assert.deepStrictEqual(ng(diagnose(base({ comments: [] }))), ["相談の書き込み"]);
-  assert.ok(ng(diagnose(base({ comments: [ask("X1", "x".repeat(8100))] }))).includes("文字数"));
-  // v21: answered asks of other ids are not read in full, so a long thread alone is not a problem
+  // 2026-11-28: no read budget any more, so a long ask is not a Mone-side problem
+  assert.ok(!ng(diagnose(base({ comments: [ask("X1", "x".repeat(8100))] }))).includes("文字数"));
   const old = [{ body: "[MONE-ASK] id=Z9 lane=chat op=design round=1 status=open\n" + "z".repeat(6000), created_at: "2026-11-22T11:00:00Z" }, { body: "[AMU-ANSWER] request=Z9 round=1 source=1\nok", created_at: "2026-11-22T11:01:00Z" }];
   assert.ok(!ng(diagnose(base({ comments: [...old, ask("X1", "x".repeat(4600))] }))).includes("文字数"));
   assert.ok(ng(diagnose(base({ pr: { ...pr, state: "closed" } }))).includes("相談の場所"));

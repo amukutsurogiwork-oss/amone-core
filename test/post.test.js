@@ -108,12 +108,13 @@ test("answered asks of other ids do not count: a long thread is fine as long as 
   const prev = [...OTHER("A", 1400), ...OTHER("B", 1400)];
   assert.strictEqual(planAsk(ASK + "x".repeat(800), prev, NOW).ok, true);
 });
-test("ask is refused when what Amu reads in full (this id's comments + this post + answers to come) would exceed 8,000 characters", () => {
+// 2026-11-28 (よしひろさん「文字数制限要らなくなった仕組みに」): in the mail route Amu does not read GitHub, so what she
+// "reads in full" (8,000) no longer stops a post. Only the comment count (200) still does.
+test("a long thread read in full no longer stops an ask (mail route: Amu does not read GitHub)", () => {
   const prev = [{ body: "[MONE-ASK] id=T1 lane=chat op=design round=1 status=open\n" + "あ".repeat(3500) }, { body: "[AMU-ANSWER] request=T1 round=1 source=1\n" + "い".repeat(3000) }];
-  const r = planAsk("[MONE-REPLY] id=T1 round=2\n" + "う".repeat(800), prev, NOW);
-  assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /8000/);
-  assert.strictEqual(planAsk("[MONE-REPLY] id=T1 round=2\n短く\n", prev, NOW).ok, true);
+  assert.strictEqual(planAsk("[MONE-REPLY] id=T1 round=2\n" + "う".repeat(800), prev, NOW).ok, true);
+  const pending = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(9000) }];
+  assert.strictEqual(planAsk(ASK + "x".repeat(300), pending, NOW).ok, true);
 });
 test("the character budget counts characters (not bytes) and applies to the Chat thread only", () => {
   assert.strictEqual(planAsk(ASK + "漢".repeat(7000), [], NOW).ok, true);
@@ -131,26 +132,6 @@ test("the consultation thread comes from the registry (one sandbox entry), so a 
   assert.throws(() => askPr(reg([sb(33), sb(34)])), /1件だけ/);
   assert.throws(() => askPr(reg([sb(0)])), /1件だけ/);
 });
-// Codex P2 on #86: every ask or reply waits for an answer of up to 800 characters, so the budget must keep room for them.
-test("the budget reserves 800 characters for each answer still to come (pending ones and this post's own)", () => {
-  // other ask still unanswered: Amu reads it in full too. 6,000 + its answer 800 + this post + its answer 800 > 8,000
-  const pending = [{ body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(6000) }];
-  const r = planAsk(ASK + "x".repeat(300), pending, NOW);
-  assert.strictEqual(r.ok, false);
-  assert.match(r.reason, /回答/);
-  // once that ask is answered, it is no longer read in full and its reserve is released
-  const answered = [...pending, { body: "[AMU-ANSWER] request=OLD round=1 source=1\nok" }];
-  assert.strictEqual(planAsk(ASK + "x".repeat(300), answered, NOW).ok, true);
-});
-// Codex P2 on #95: an answer releases an ask only when id, round AND source (the ask's comment number) match, and it is
-// not a blocked report (the instruction, diagnose.js and status.js count it the same way). Otherwise Amu still reads it.
-test("an answer with the wrong source, or a blocked report, does not release the ask from what Amu reads in full", () => {
-  const old = { id: 101, body: "[MONE-ASK] id=OLD lane=chat op=design round=1 status=open\n" + "y".repeat(6000) };
-  const post = ASK + "x".repeat(300);
-  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=999\nok" }], NOW).ok, false);
-  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101 status=blocked\nx" }], NOW).ok, false);
-  assert.strictEqual(planAsk(post, [old, { id: 102, body: "[AMU-ANSWER] request=OLD round=1 source=101\nok" }], NOW).ok, true);
-});
 // 2026-11-24 23:31 (TEST-V27-1): from the shortcut too, Amu fetched and judged inside one program run, the way she read
 // 410,000 characters of PR #23. よしひろさん chose「字数の上限をなくす」: the whole thread has no character limit; only what
 // she reads in full (8,000) and the comment count (200) are limited.
@@ -160,16 +141,16 @@ test("a long thread of answered asks does not stop a new ask (no whole-thread ch
 });
 // アムの設計 (Astra, 2026-11-25/26): a design consultation may allow a longer answer, up to 4,000 characters, with limit=N.
 // The budget then keeps room for that answer instead of 800.
-test("a design ask with limit=N keeps room for an answer of N characters", () => {
+test("limit=N: 1..4000 on any op; it no longer needs room in a read budget", () => {
   const { checkAsk } = require("../scripts/check-ask");
   const d = (n) => `[MONE-ASK] id=D1 lane=chat op=design round=1 status=open limit=${n}\n設計の相談`;
   assert.strictEqual(checkAsk(d(4000)), null);
   assert.match(checkAsk(d(4001)), /4000/);
   // 2026-11-27: limit=N is allowed on every op (it used to be design only)
   assert.strictEqual(checkAsk("[MONE-ASK] id=D1 lane=chat op=review round=1 status=open limit=2000\nx"), null);
-  // 3,300 already read + this post + 4,000 for its answer > 8,000: refused; with the normal 800 it fits
+  // 2026-11-28: no read budget, so a limit=4000 ask is fine even after a long earlier ask
   const prev = [{ body: "[MONE-ASK] id=P lane=chat op=design round=1 status=open\n" + "y".repeat(3300) }];
-  assert.strictEqual(planAsk(d(4000).replace("D1", "P2"), prev, NOW).ok, false);
+  assert.strictEqual(planAsk(d(4000).replace("D1", "P2"), prev, NOW).ok, true);
   assert.strictEqual(planAsk("[MONE-ASK] id=P2 lane=chat op=design round=1 status=open\n設計の相談", prev, NOW).ok, true);
 });
 // 2026-11-26 (CUSTOM-INST-1): a closing [MONE-NOTE] was refused because the budget added room for an answer to it.

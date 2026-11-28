@@ -22,7 +22,7 @@
 6. 本番を変える前に、元に戻す手順を用意する (2026-11-27 から)。
 
 ## 3. アム Chat への相談 (いまの道: メール連携)
-1. 相談の文を作る: `[MONE-ASK] id=<ID> lane=chat op=<design|review|…> round=1 status=open`。本文は 4,500字まで、答えは字数の指定なし (問いに必要な長さで、結論から。`limit=N` は配送の試験や提出先の指定があるときだけ。最大 4,000字)。
+1. 相談の文を作る: `[MONE-ASK] id=<ID> lane=chat op=<design|review|…> round=1 status=open`。本文の字数の上限は、なくした (2026-11-28。長いメールが切れないかは試験で確かめる)、答えは字数の指定なし (問いに必要な長さで、結論から。`limit=N` は配送の試験や提出先の指定があるときだけ。最大 4,000字)。
 2. `node scripts/post.js ask <ファイル> --dry-run` で事前確認 → `node scripts/post.js ask <ファイル>` で投稿。
 3. `node scripts/mail-send.js send <出力ファイル>` (出力は **リポジトリの外**)。答え待ちのメールは**全案件で1通だけ**。
 4. 出力ファイルの中身を、件名 `AMONE-TEST-RETURN` で、モネの Gmail から、iPhone のプッシュ用アカウント宛てに送る (宛先は、送信済みの前のメールと同じ)。

@@ -10,7 +10,6 @@ const { planSend, tagOf } = require("./mail-route");
 const OWNER = "amukutsurogiwork-oss";
 const VERSION = 1;
 // What the Chat may read in one go is about 5,000 characters (measured 2026-11-15); the mail stays at 90%.
-const MAX_MAIL_CHARS = 4500;
 // The iPhone automation starts on this subject (from Monet's address only).
 const MAIL_SUBJECT = "AMONE-TEST-RETURN";
 
@@ -70,9 +69,7 @@ function buildMail(comments, readFile, token) {
   for (let k = 1; k <= n; k++) out.push(`【資料 part-${k}/${n}】`, read(k));
   const main = out.join("\n");
   const text = `${main}\n【相談おわり request=${id} round=${round} 本文=${len(main)}字】\n`;
-  if (len(text) > MAX_MAIL_CHARS) {
-    return { ok: false, reason: `メールが長すぎます (${len(text)}字。Chat に渡せるのは 4,500字まで)。相談を短くするか、分けてください` };
-  }
+  // No length cap on the mail any more (2026-11-28, よしひろさん「文字数制限要らなくなった仕組みに」); whether a very long mail is cut is checked by a test.
   const send = { request: id, round, source, tag: tagOf(token) };
   return {
     ok: true, subject: MAIL_SUBJECT, body: `${tokenLine(token)}\n${text}`, chars: len(text), send,
@@ -186,4 +183,4 @@ if (require.main === module) {
   process.exit(code);
 }
 
-module.exports = { buildMail, parseReply, stripFooter, cli, MAX_MAIL_CHARS, MAIL_SUBJECT, VERSION };
+module.exports = { buildMail, parseReply, stripFooter, cli, MAIL_SUBJECT, VERSION };
